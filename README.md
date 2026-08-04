@@ -4,10 +4,12 @@ Governed Workflow is a small, user-owned workflow layer for Sol-Governed Codex
 and GitHub Copilot CLI. It keeps the shared skills flat and portable while
 making configuration changes conversational, reviewable, and opt-in.
 
-This is a pre-release identity correction: the public repository and plugin
-identifier is `governed-workflow`. If a GitHub remote is created in the future,
-it must use `governed-workflow`; this repository does not claim that a remote
-already exists.
+This repository is published at
+<https://github.com/LookAsPelc/governed-workflow> on the `main` branch. The
+public repository and plugin identifier are `governed-workflow`; future
+updates should continue using this repository and identifier. This pre-release
+project does not make claims about tagged releases or installation availability
+beyond the documented flows below.
 
 ## Install for the client you use
 
