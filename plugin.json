@@ -1,0 +1,11 @@
+{
+  "name": "governed-workflow",
+  "version": "0.1.0",
+  "description": "A user-owned Codex and Copilot harness built around Sol-Governed Codex.",
+  "author": {"name": "Governed Workflow maintainers"},
+  "license": "MIT",
+  "keywords": ["codex", "copilot", "sol-governed", "harness", "workflow"],
+  "category": "Developer Tools",
+  "agents": "agents/",
+  "skills": "skills/"
+}

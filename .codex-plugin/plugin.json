@@ -1,0 +1,19 @@
+{
+  "name": "governed-workflow",
+  "version": "0.1.0",
+  "description": "A user-owned Codex and Copilot harness built around Sol-Governed Codex.",
+  "author": {"name": "Governed Workflow maintainers"},
+  "license": "MIT",
+  "keywords": ["codex", "copilot", "sol-governed", "harness", "workflow"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Governed Workflow",
+    "shortDescription": "User-owned Sol-Governed harness setup",
+    "longDescription": "An explicit, user-approved setup workflow for a Sol-Governed Codex harness and compatible GitHub Copilot CLI skills.",
+    "developerName": "Governed Workflow maintainers",
+    "category": "Developer Tools",
+    "capabilities": ["Interactive", "Read", "Write"],
+    "defaultPrompt": ["Audit my Sol-Governed Codex setup.", "Set up my personal governed harness.", "Show the recommended global AGENTS.md."],
+    "brandColor": "#F59E0B"
+  }
+}

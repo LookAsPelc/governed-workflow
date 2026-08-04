@@ -1,0 +1,4 @@
+interface:
+  display_name: "Governed harness"
+  short_description: "Inspect and tailor a personal Sol-Governed setup"
+  default_prompt: "Audit my harness and propose only confirmed changes."
