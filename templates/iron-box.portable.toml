@@ -1,27 +1,9 @@
-# Portable governance baseline. It deliberately does not choose the user's
-# root model, reasoning budget, memory policy, or Desktop preferences.
-model = "gpt-5.6-terra"
-
-[features]
-memories = true
-default_mode_request_user_input = true
-
-[memories]
-generate_memories = true
-use_memories = true
+# Portable governance baseline. Only the agent routing knobs below are
+# portable policy; root model, memories, Desktop UX, and request-input
+# preferences remain user-owned.
 
 [agents]
 enabled = true
 max_threads = 4
 default_subagent_model = "gpt-5.6-luna"
-default_subagent_reasoning_effort = "high"
-
-[desktop]
-followUpQueueMode = "steer"
-keepRemoteControlAwakeWhilePluggedIn = true
-usePointerCursors = true
-conversationDetailMode = "STEPS_COMMANDS"
-ambient-suggestions-enabled = true
-show-context-window-usage = true
-defaultTerminalLocation = "right"
-hotkey-window-projectless-default-enabled = true
+default_subagent_reasoning_effort = "medium"

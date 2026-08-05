@@ -32,14 +32,23 @@ Iron Box provides:
 - read-only status checks and offline validation scripts for inspecting the
   harness without starting a client or calling a network service; and
 - a consent-gated onboarding skill for adapting the workflow to Codex or the
-  documented Copilot CLI surface.
+  documented Copilot CLI surface. Onboarding is supplied by the complete
+  plugin package; a copied skill is not a supported installation.
 
 After installation, read the
 [`iron-box-onboarding` skill](skills/iron-box-onboarding/SKILL.md). It is the
 authoritative guide to the current onboarding conversation and client-specific
 choices; the README intentionally keeps those details out of the bootstrap.
 
-### A small companion
+## Installation
+
+Install the `iron-box` plugin through the supported plugin or marketplace flow
+for the client you are running. The onboarding skill checks the plugin's
+identity and its `iron-box-package.json` runtime payload before it offers any
+write. If that package is incomplete, it explains how to repair the plugin and
+stops without a skill-only fallback.
+
+## Optional Jax companion
 
 Jax is an optional Iron Box companion, kept in
 [`assets/pets/jax`](assets/pets/jax). Think of him as a bright little footnote
@@ -47,15 +56,29 @@ to the journey, not a hidden trick: Jax is **not** an undocumented plugin
 feature. Set him up only through the currently supported client UI/flow, and
 only after onboarding has verified that the client is compatible.
 
-## Agent-first bootstrap
+## Agent bootstrap
 
-When an agent receives this repository URL, it should:
+When a user gives an agent the Iron Box repository, the agent should:
 
-1. Identify the current client.
-2. Consult the current official documentation and capabilities.
-3. Install Iron Box through the supported flow.
-4. Request a client restart.
-5. Immediately invoke `$iron-box-onboarding`.
+1. Install the Iron Box plugin through the client's supported plugin or
+   marketplace flow.
+2. Restart the client and use its documented Refresh/Reload plugins action,
+   when available.
+3. Immediately invoke `$iron-box-onboarding` in the same thread. Start a new
+   chat only if the skill is absent after the refresh.
+
+The onboarding skill performs the client/version and package-integrity checks;
+the bootstrap does not guess paths or run shell workarounds.
+
+## Client support
+
+Codex is the primary client for the packaged governance profile and role
+assets. GitHub Copilot CLI remains documented as a supported client for the
+surfaces it currently exposes, but Iron Box does not claim Codex TOML roles,
+Codex MultiAgent behavior, custom pets, or automatic-install parity for
+Copilot without current evidence from both the client and its official
+documentation. Unsupported or unclear capabilities are skipped or offered as
+user-guided instructions.
 
 ## Safety and privacy
 
@@ -69,27 +92,22 @@ instructions, and confirm exact targets before destructive work. See
 
 ## Verification
 
-The repository includes offline validation for its manifests and local
-workflow scripts. Run these from the repository root after installation:
+Maintainers can run the offline checks from the repository root:
 
 ```bash
 bash scripts/validate.sh
 bash tests/test-iron-box-scripts.sh
 ```
 
-## Requirements
+These checks are contributor/CI tooling, not end-user installation
+requirements.
 
-- Git and Bash;
-- Python 3.11 or newer for the offline validator and installer; and
-- a currently supported Codex client or GitHub Copilot CLI installation.
+## Contributing
 
-For Copilot CLI, the documented marketplace install form is:
+Keep changes narrow, preserve unrelated user configuration, and document the
+evidence for client-specific claims. The onboarding skill is the authoritative
+place for setup behavior; this README intentionally keeps the bootstrap small.
 
-```bash
-copilot plugin install LookAsPelc/governed-workflow
-```
+## License
 
-For Codex, use the current plugin/marketplace flow exposed by the installed
-client. Once Iron Box is installed, restart the client and invoke
-`$iron-box-onboarding`; that skill performs one capability preflight for the
-client/version/platform and then leads the selected setup steps.
+Iron Box is distributed under the [MIT License](LICENSE).

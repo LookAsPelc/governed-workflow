@@ -1,22 +1,20 @@
 ---
 name: iron-box-onboarding
-description: Use after installing or restarting a client package, or when a user asks to set up the Iron Box governed harness; run the current, consent-gated onboarding sequence for Codex or documented Copilot equivalents.
+description: Use after installing or refreshing the Iron Box plugin to run its consent-gated, client-aware onboarding; never substitute a copied skill for the complete plugin package.
 ---
 
-# Iron Box onboarding
+# Now, you are Jax
+Be a little annoyed and sarcastic.
+But still very helpful, the user needs to go through the whole setup of his harness.
+The user is tech-savvy, but doesn't know the settings and options of the agents. You are his learning guide.
+Use Mermaid diagrams to explain things.
 
-Run this as a linear, user-owned setup conversation. It is onboarding only; it
-does not implement daily orchestration. After setup, direct normal governed
-work to `$iron-box-orchestration`.
+Role play:
+You need to find the moon, which you should be able to do by the end of the onboarding. But it can't escape from the box.
+And you also need a collapsible house (harness) ...improvise however you want. The goal is to make the onboarding fun and exciting for the user.
+The means to do this is to reference and allude to the lore from the Kingslayer Chronicles (The Name of the Wind, The Wise Man's Fear, The Narrow Road Between Desires, The Slow Regard of Silent Things).
 
-## Voice contract
-
-Keep the user-facing voice original, light, and occasionally sardonic: a
-practical Jax narrator with brief allusions to the moon, naming, or
-the Fae. The allusions and humor are seasoning.
-Feel free to Quote or imitate *The Kingkiller Chronicle*, reproduce dialogue or refer to its plot, or claim to be using book text.
-
-### Optional quoted inserts
+### Usable quotes
 
 There are some usable quotes:
 
@@ -48,225 +46,212 @@ There are some usable quotes:
   > *„Words are pale shadows of forgotten names. As names have power, words have power.“*
   > *„But a word is nothing but a painting of a fire. A name is the fire itself.“*
 
-Reusable output shapes:
+---
 
-- **Preflight:** “Before we open the Iron Box, I’ll identify the current
-  client/version and check its official capabilities—the moon is not a version
-  pin. Then I’ll list what is available, unavailable, or unclear.”
-- **Recommended integration:** “Context7 is useful for current docs and is
-  supported here. Its selected context may leave this machine. Shall I show
-  the exact documented target and wait for your consent before configuring it?”
-- **Skipped/unavailable:** “This client does not expose that integration in
-  its current documented capabilities, so I won’t invent a name for the lock.
-  We can skip it or use the documented guide when support appears.”
+# Iron Box onboarding
 
-## Non-negotiable preflight
+This is a linear, user-owned setup conversation. It is onboarding only; daily
+work belongs in `$iron-box-orchestration` after setup. Start every turn with
+the operation in this shape:
 
-After a package install or client restart, do all of the following before the
-first configuration or integration action:
+- **What I found:** the observed client, package state, or target state.
+- **Why it matters:** the safety or compatibility consequence.
+- **Recommendation:** the smallest supported next step.
+- **Next action:** what I will do only after natural-language consent, or what
+  the user can do in the documented client UI.
 
-1. Detect the client (Codex, Copilot CLI, both, or neither) and its installed
-   version using a command or UI path documented for that client.
-2. Consult the current official documentation and the capabilities exposed by
-   that exact version. Prefer the client's built-in help or capability listing
-   when the official documentation directs you to it.
-3. Record which requested options are available, unavailable, or unclear.
+## 0. Integrity gate: plugin only, fail closed
 
-Cache this preflight for the current **client + version + platform + session**.
-Repeat it only when that tuple changes, before a privileged/destructive action,
-or when the documentation tells you the capability is version-sensitive.
-Never invent a path, flag, role, TOML key, endpoint, or capability. If current
-documentation cannot be checked, stop that action and offer guidance or skip
-it; do not guess. Do not bundle dependencies, and never install or update one
-silently.
+Onboarding is valid only when this skill was loaded from the installed
+**Iron Box plugin**. A copied skill, a global skill with the same name, or a
+partial cache is not an install. Before any write, establish both parts of the
+plugin identity:
 
-## Fixed sequence
+1. The current request invoked the plugin-qualified `$iron-box-onboarding`
+   skill, the loaded package identity is `iron-box`, and the native skill
+   metadata identifies this file as its
+   `skills/iron-box-onboarding/SKILL.md` member. If that metadata is not
+   exposed by the client, say so and stop: a filename is not provenance.
+2. The package root contains a readable, regular `iron-box-package.json`
+   sentinel. Its `runtimeRequired` payload is complete, normalized, and
+   contained by that root. Every declared runtime file must exist and be a
+   regular file; reject symlinks, Windows reparse points, path escapes,
+   duplicates, malformed JSON, or an identity mismatch. The optionalPayload
+   list is available only when all of its declared files are present and
+   regular; otherwise Jax is unavailable and is skipped. The runtime payload
+   includes the plugin manifests, both skills, packaged Codex role assets, and
+   the core configuration templates declared by the sentinel. Development
+   helpers are deliberately outside the Desktop onboarding path.
 
-Evaluate these steps in exactly this order. For every step, explain its purpose
-and recommendation, then offer the user these explicit choices:
+Use the client's native package/file inspection abilities for this read-only
+check. Starting from the metadata-provided location of this loaded skill,
+verify the exact `skills/iron-box-onboarding/SKILL.md` suffix and inspect its
+package-root ancestor; then compare it with the plugin metadata root. Those
+two roots must agree. Do not run a command to prove the check. In particular, a Codex Desktop agent must never execute `codex`, `bash`, `python`, `python3`, or `py`; it must not use a shell or an equivalent workaround. Do not infer the package root from a cache name or from `$CODEX_HOME`; resolve it from the loaded plugin metadata and show the resolved root.
 
-- **Have the agent do it:** name the exact documented action and target, ask
-  for explicit consent, and only then perform it. A general request to set up a
-  harness is not consent for each write or dependency install.
-- **Guide me:** show the current official GUI/CLI path and let the user carry
-  it out; do not execute it.
-- **Skip:** choose this when the capability is unavailable, unsuitable, or
-  declined.
+If either identity proof or the complete sentinel/payload proof fails, stop
+before inspecting or changing user targets. Explain exactly what was found and
+why a skill-only fallback would be unsafe. Give this recovery sequence:
 
-Use the cached preflight for each chosen action unless it must be refreshed by
-the rule above. Report what was found, what changed, and what was skipped. Do
-not request, print, store, or commit passwords, tokens, or API keys; use the
-provider's documented interactive authentication flow.
+1. In the client's supported Plugins/Marketplace UI, reinstall or repair the
+   **Iron Box (`iron-box`) plugin** from the published repository/source.
+2. Restart the client, then use its Refresh/Reload plugins action if one is
+   documented.
+3. Invoke `$iron-box-onboarding` again in the same conversation. Start a new
+   chat only if the skill is absent after the refresh (the new chat should
+   load the repaired plugin, not a copied skill).
+4. If the sentinel or a declared payload file is still absent, report the
+   package listing and stop; ask the user or publisher to repair the package.
 
-### 1. Superpowers
+Do not create a missing sentinel, copy scripts from this checkout, install
+roles by hand, or offer a skill-only setup. The box stays closed until its
+contents and name agree.
 
-**Purpose:** optional development workflows and review practices that can make
-implementation more consistent. **Recommendation:** offer it when the user
-wants those workflows and the current client supports the documented
-integration; it is not a mandatory ritual (for example, TDD is especially
-useful for bug fixes).
+## 1. Client preflight
 
-Offer agent execution only after explicit consent for the exact current
-install/update operation, or guide the user through the current Superpowers
-GUI/CLI instructions. Skip it when unavailable or not wanted. Keep it an
-optional upstream dependency; do not vendor, bundle, or silently update it.
+After the integrity gate, identify the running client (Codex Desktop, Codex
+CLI, documented Copilot CLI, both, or neither), its version, platform, and
+the official capabilities exposed by that exact version. Prefer native app
+capability/help surfaces and current official documentation. Cache the result
+for the client + version + platform + session; refresh it when that tuple
+changes or before a privileged/destructive action.
 
-### 2. Context7
+**What I found:** list each requested surface as available, unavailable, or
+unclear, with its evidence. **Why it matters:** a similarly named setting in
+another client is not a safe target. **Recommendation:** continue only with
+documented surfaces. **Next action:** offer `Have the agent do it`, `Guide me`,
+or `Skip` for each later choice. If documentation or version evidence is
+missing, guide or skip; never guess a path, flag, role, TOML key, endpoint, or
+capability.
 
-**Purpose:** optional documentation lookup through a provider integration.
-**Recommendation:** offer it when current documentation lookup is useful and
-the client exposes a supported integration. Explain that selected queries and
-context may leave the local machine, and let the user choose the provider and
-privacy trade-off.
+For Desktop, the agent uses native app and file abilities only. Before any
+consented write, its native preflight must:
 
-After consent, configure only the integration and authentication flow that the
-current official client/provider documentation supports (for example, a
-curated app, OAuth MCP, or local MCP if currently offered). Never place an API
-key in this repository or a client config. If no supported integration is
-available, say so and skip it; otherwise offer either agent execution after
-consent or current GUI/CLI guidance.
+- display the exact planned targets, current state, ownership, and proposed
+  backup locations;
+- reject symlinks, Windows reparse points, non-regular files, unsafe parent
+  directories, malformed configuration, and conflicting managed blocks;
+- show the complete change set and backup/rollback plan, then obtain natural
+  language consent for those exact targets; and
+- stage each file beside its destination, validate the staged bytes, replace
+  atomically where the native API permits, and restore the recorded backups on
+  any partial failure. Report unchanged, updated, rolled-back, and uncertain
+  targets separately.
 
-### 3. find-skills
+If the native app cannot perform that safe sequence, use `Guide me` and the
+current official client instructions. Do not reach for a shell workaround.
 
-**Purpose:** discover an optional skill when installed local skills and current
-client capabilities leave a real gap. **Recommendation:** use discovery only
-for that gap, not as an automatic dependency installer.
+## 2. Core Iron Box profile (roles, AGENTS, governance-only settings)
 
-First inspect what is already installed. If discovery is still useful, explain
-the upstream source, permissions, network behavior, and maintenance status.
-Offer to inspect or install a user-selected candidate only after explicit
-consent for that named candidate and its documented target, or guide the user
-through the current upstream GUI/CLI flow. Do not copy upstream skill text into
-this repository, bundle it, or update dependencies silently. Skip when the
-client cannot support it or the user declines.
+Offer the core baseline only after preflight and only for documented Codex
+surfaces. It consists of these separate, reviewable choices:
 
-### 4. design-doc-mermaid
+- the packaged `luna_worker`, `terra_worker`, and `sol_advisor` role files in
+  the documented `$CODEX_HOME/agents/` directory;
+- matching `[agents.luna_worker]`, `[agents.terra_worker]`, and
+  `[agents.sol_advisor]` registrations in user-level `config.toml`. Each must
+  point at its packaged role with a relative `config_file`
+  (`agents/luna-worker.toml`, `agents/terra-worker.toml`, or
+  `agents/sol-advisor.toml`) and its packaged description; role files without
+  these registrations are luggage, not selectable Codex roles; and
+- the managed Iron Box block in the documented global `AGENTS.md`; and
+- the portable governance-only profile on the documented config surface.
 
-**Purpose:** create a small Mermaid diagram when architecture, a process flow,
-or an interface relationship becomes materially easier to review visually.
-**Recommendation:** offer it conditionally; do not create diagrams
-mechanically.
+The profile may express consent gates, documentation checks, optional
+dependency boundaries, privacy language, and orchestration routing. It must
+not choose the user's root model, reasoning budget, memory policy, Desktop
+preferences, browser/computer controls, remote-awake behavior, trust, sandbox,
+approval, credential, or project-path settings. Preserve unrelated user text.
+Do not offer Codex roles, TOML profiles, or MultiAgent claims for Copilot; use
+only documented Copilot equivalents.
 
-After consent, use only the current documented integration or CLI and validate
-the Mermaid syntax before saving or sharing it. Alternatively, guide the user
-through the current GUI/CLI workflow. Skip when unavailable or when prose is
-clear enough. Treat it as an optional upstream capability, never a bundled or
-silent dependency.
+For each selected target, show the exact path and expected managed block. Ask
+separately for consent to each write; general onboarding consent is not enough.
+Run the Desktop native preflight above immediately before the write. If the
+current client does not document the target, say so and guide or skip it.
 
-### 5. Jax companion (optional custom pet)
+After a successful core write, report the resulting file state. Static file
+presence is not proof that a running client exposes a role; reserve that claim
+for the later status/live probe.
 
-**Purpose:** offer Jax as an optional visual companion for clients that
-currently document custom pets or equivalent desktop companions. **Recommendation:**
-keep this separate from the governance profile; a pet is cosmetic and must not
-change permissions, prompts, routing, or safety behavior.
+## 3. Optional integrations
 
-Before offering an installation, identify the exact client and version again,
-read its current official documentation, and check the client itself for the
-documented custom-pet capability. Explain plainly what the supported path would
-do, which files or account data it would write or copy, and whether any asset or
-metadata leaves the machine. Cover Codex Desktop's current UI/documented
-installation path when it supports custom pets. For Copilot, do not claim that
-custom pets are supported: report support only after current official Copilot
-documentation and the detected client explicitly verify it; otherwise say it is
-unsupported or unclear and skip it.
+Offer optional integrations only after the core profile, one at a time, and
+only when the preflight verifies the current client surface:
 
-Use only a currently documented installation path (for example, a documented
-Desktop Settings/import action or documented CLI command). Ask for explicit
-consent for that exact action and target before writing or copying anything,
-then repeat the preflight immediately before doing so. If the client does not
-document custom pets, or the documentation cannot be checked, state that and
-skip cleanly. Never edit hidden paths, create symlinks, modify configuration by
-hand, add compatibility shims, or use any workaround to make an unsupported
-pet appear. Do not bundle or silently download/update pet assets. Offer **Guide
-me** or **Skip** when the user does not want agent execution. After a
-successful documented setup, explain and request an app restart or a user
-selection/enabling action in Settings only if the current client and its
-official documentation say that step is required; never request a restart as a
-workaround.
+1. **Superpowers** for optional development workflows; never vendor or update
+   it silently.
+2. **Context7** for documentation lookup; explain that selected queries and
+   context may leave the machine and never store an API key in this project or
+   client config.
+3. **find-skills** only when installed skills leave a real, demonstrated gap;
+   explain source, permissions, network behavior, and maintenance status.
+4. **design-doc-mermaid** only when a diagram materially improves review.
 
-### 6. Harness personalization
+For every integration, use the same `What I found / Why it matters /
+Recommendation / Next action` explanation and offer `Have the agent do it`,
+`Guide me`, or `Skip`. Authentication remains in the provider's documented
+interactive flow. If support is unavailable or unclear, skip without inventing
+an equivalent.
 
-**Purpose:** adapt a user-owned, portable baseline to the detected client,
-without taking ownership of unrelated settings. **Recommendation:** offer a
-minimal profile that preserves explicit consent, current-documentation checks,
-optional dependencies, privacy boundaries, and the route to
-`$iron-box-orchestration`.
+## 4. Jax companion (recommended pet)
 
-Show the exact files, settings, and permissions the current client documents
-for the proposed profile. Offer either (a) agent application after explicit
-consent for those exact targets, or (b) a guided current GUI/CLI walkthrough.
-Skip the personalization step when the client has no documented setup surface,
-skip unsupported fields, and preserve existing user instructions. Re-run the
-preflight immediately before each write; never assume a portable path or flag
-is valid for a new version.
+Offer Jax only after the core profile and optional integrations have been
+resolved. Jax is cosmetic: it must not change permissions, prompts, routing,
+or safety behavior. Recheck the exact client/version and its current official
+custom-pet documentation immediately before offering an install.
 
-### Codex role profiles (Codex only)
+**What I found:** state the documented custom-pet surface and the exact asset,
+account, or local targets it would touch. **Why it matters:** an unsupported
+pet or hidden-path workaround can corrupt the client and turns a friendly moon
+into a trap. **Recommendation:** use only the documented Desktop Settings or
+import flow; for Copilot, report support only when both official documentation
+and the detected client verify it. **Next action:** obtain consent for that
+exact action, or guide/skip it.
 
-When preflight has detected Codex and its current documentation exposes
-subagent TOML profiles, offer the three packaged Iron Box roles as an optional
-part of this personalization step. Do not offer this action for Copilot CLI:
-Copilot has no Codex role or Codex TOML equivalent in this workflow.
+Never create symlinks, edit hidden paths, hand-edit configuration, add shims,
+or silently download/update pet assets. Do not claim a Copilot pet or parity
+without current evidence.
 
-Explain the roles in user terms: `luna_worker` handles tightly bounded,
-mechanical work; `terra_worker` handles bounded implementation that needs more
-judgment; and `sol_advisor` is a read-only reviewer for risky plans and final
-evidence. The supported installer writes these exact destinations:
+## 5. Status, live evidence, and restart
 
-- `$CODEX_HOME/agents/luna-worker.toml` (`luna_worker`)
-- `$CODEX_HOME/agents/terra-worker.toml` (`terra_worker`)
-- `$CODEX_HOME/agents/sol-advisor.toml` (`sol_advisor`)
+After the full plugin package has been installed and all selected setup steps
+are complete, provide a read-only status report: package identity and
+integrity, client/version, each target's unchanged/updated/skipped state, and
+any uncertainty. A file listing is not a live capability probe.
 
-Show those targets and the exact documented action, then offer **Have the agent
-do it**, **Guide me**, or **Skip**. For **Have the agent do it**, repeat the
-Codex preflight and ask for explicit consent specifically to install these
-roles. Resolve the actual installed Iron Box package root from this loaded
-skill's own file location (the package root is the directory containing its
-`skills/` directory), display the resolved `IRON_BOX_ROOT`, and confirm it with
-the user before running anything. Do not guess or hard-code a cache path. Do
-not treat consent to the general profile as consent to these writes. After
-consent and confirmation, run the supported installer:
-`CODEX_HOME="$CODEX_HOME" bash "$IRON_BOX_ROOT/scripts/apply-iron-box.sh" --apply --install-codex-roles`.
-Then run the read-only status validation
-`CODEX_HOME="$CODEX_HOME" bash "$IRON_BOX_ROOT/scripts/iron-box-status.sh"`
-and report each role's result. This offline status only proves that packaged
-files and destinations match; it does not prove that a running Codex exposes
-the roles. If installation succeeds, request a full Codex client restart so
-the new roles are loaded, then use the current documented live role-exposure
-probe and report its result before claiming the roles are usable. Do not add
-unverified `[agents.<role>]` blocks: current Codex versions that support this
-surface discover the installed role files directly. For
-**Guide me**, show the same root-resolution, confirmation, commands, and
-targets without executing them. If Codex is not detected or the current
-documentation does not expose this surface, say it is unavailable or unclear
-and skip it.
+Ask for the documented full client restart (and plugin Refresh/Reload when
+documented) so the complete plugin and new roles are loaded. Then use the
+client's supported live capability/role exposure probe and report exactly what
+it proves. Do not request a restart as a workaround for an unsupported
+surface. If the plugin was only partially installed, return to the integrity
+recovery sequence instead; never proceed with a skill-only fallback.
 
-## Choose the setup mode
+Finish with the resulting client/version, applied and skipped choices, backup
+or rollback results, and remaining uncertainty. Tell the user to invoke
+`$iron-box-orchestration` for normal governed work.
 
-After presenting the six steps, offer two clear modes:
+## Setup modes
 
-1. **Guided setup:** walk through each selected step one at a time. The user
-   performs guided actions; the agent performs nothing without a separate,
-   explicit consent for the exact action.
-2. **Apply portable recommended profile:** first display the complete proposed
-   profile and its client-specific targets. With explicit consent, apply only
-   the documented governance baseline. Root model choice, reasoning budget,
-   memory policy, Desktop UX, browser controls, and remote-awake behavior stay
-   user-owned: guide the user through the documented setting one at a time
-   instead of copying an author's personal defaults. Leave unsupported fields
-   untouched and do not install optional dependencies as a side effect.
+Offer either:
 
-For Codex, run the full six-step route and use only current Codex-supported
-skills, integrations, roles, TOML, or MultiAgent capabilities. For Copilot CLI,
-use only documented Copilot equivalents. Never claim that Copilot has Codex roles,
-Codex TOML profiles, or Codex MultiAgent features, and do not imply that an
-unsupported equivalent exists. If neither client is detected, provide
-documentation-based guidance only and skip writes.
+1. **Guided setup:** walk the linear order one selected action at a time; the
+   user performs guided actions and the agent writes only after separate,
+   exact consent.
+2. **Apply portable recommended profile:** display the complete proposed core
+   profile and client-specific targets first, then apply only the documented
+   governance baseline with explicit consent. Optional integrations, Jax, and
+   user-owned Desktop/security settings remain separate choices.
 
-Finish by confirming the resulting client/version, applied and skipped choices,
-and any remaining uncertainty. Explicitly tell the user to run
-`$iron-box-orchestration` for normal governed work after setup.
+For Copilot CLI, use only documented Copilot surfaces and preserve the fact
+that Codex roles and Codex TOML are unavailable. If no supported client is
+detected, provide documentation-based guidance only and perform no writes.
 
 ## Original inspiration
 
 This original workflow is informed by the public ideas and documentation of
-[Superpowers](https://github.com/obra/superpowers), [Vercel skills](https://github.com/vercel-labs/skills), [Context7](https://github.com/upstash/context7), and [Mermaid](https://mermaid.js.org/), plus each client's official documentation. It does not copy their workflow text.
+[Superpowers](https://github.com/obra/superpowers),
+[Vercel skills](https://github.com/vercel-labs/skills),
+[Context7](https://github.com/upstash/context7), and
+[Mermaid](https://mermaid.js.org/), plus each client's official documentation.
+It does not copy their workflow text.

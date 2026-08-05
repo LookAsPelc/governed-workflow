@@ -1,6 +1,6 @@
 {
   "name": "iron-box",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A user-owned Iron Box workflow for Codex and GitHub Copilot CLI.",
   "author": {"name": "Iron Box maintainers"},
   "license": "MIT",

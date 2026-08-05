@@ -4,6 +4,7 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 command -v python3 >/dev/null 2>&1 || { echo "Python 3.11+ is required for offline JSON/frontmatter checks" >&2; exit 127; }
 python3 -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else "Python 3.11+ is required (tomllib is used by this validator)")'
+python3 "$root/scripts/iron_box.py" validate-package
 
 python3 - "$root" <<'PY'
 import json
@@ -146,6 +147,24 @@ else:
     print("optional Jax companion asset not present: skipped")
 
 portable_profile = (root / "templates" / "iron-box.portable.toml").read_text(encoding="utf-8")
+portable_data = tomllib.loads(portable_profile)
+if set(portable_data) != {"agents"} or set(portable_data["agents"]) != {
+    "enabled",
+    "max_threads",
+    "default_subagent_model",
+    "default_subagent_reasoning_effort",
+}:
+    raise SystemExit(
+        "portable profile must contain only the explicit [agents] governance allowlist"
+    )
+if portable_data["agents"] != {
+    "enabled": True,
+    "max_threads": 4,
+    "default_subagent_model": "gpt-5.6-luna",
+    "default_subagent_reasoning_effort": "medium",
+}:
+    raise SystemExit("portable profile has unexpected agent governance values")
+print("portable profile has explicit agents-only governance allowlist")
 forbidden_profile_terms = re.compile(
     r"sandbox|approval|mcp|credential|token|project[ _-]?trust|(?:^|[= ])/(?:[^/\n]|$)|\\\\",
     re.IGNORECASE,
@@ -199,28 +218,49 @@ print("required Iron Box identifiers present")
 
 codex_agents_dir = root / "assets" / "codex" / "agents"
 expected_codex_roles = {
-    "luna-worker.toml": ("luna_worker", "gpt-5.6-luna", "medium", "workspace-write"),
-    "terra-worker.toml": ("terra_worker", "gpt-5.6-terra", "high", "workspace-write"),
-    "sol-advisor.toml": ("sol_advisor", "gpt-5.6-sol", "medium", "read-only"),
+    "luna-worker.toml": {
+        "name": "luna_worker",
+        "model": "gpt-5.6-luna",
+        "model_reasoning_effort": "high",
+        "sandbox_mode": "workspace-write",
+    },
+    "terra-worker.toml": {
+        "name": "terra_worker",
+        "model": "gpt-5.6-terra",
+        "sandbox_mode": "workspace-write",
+        "omitted": {"model_reasoning_effort"},
+    },
+    "sol-advisor.toml": {
+        "name": "sol_advisor",
+        "model": "gpt-5.6-sol",
+        "omitted": {"model_reasoning_effort", "sandbox_mode"},
+        "read_only_text": ("description", "developer_instructions"),
+    },
 }
 if not codex_agents_dir.is_dir():
     raise SystemExit("missing Codex role assets directory: assets/codex/agents")
-for filename, (name, model, reasoning_effort, sandbox_mode) in expected_codex_roles.items():
+for filename, expected in expected_codex_roles.items():
     path = codex_agents_dir / filename
     if not path.is_file():
         raise SystemExit(f"missing required Codex role asset: {path.relative_to(root)}")
     with path.open("rb") as handle:
         profile = tomllib.load(handle)
-    actual = (profile.get("name"), profile.get("model"), profile.get("model_reasoning_effort"), profile.get("sandbox_mode"))
-    expected = (name, model, reasoning_effort, sandbox_mode)
-    if actual != expected:
-        raise SystemExit(
-            f"{path.relative_to(root)} must set name/model/model_reasoning_effort/sandbox_mode to {expected!r}, got {actual!r}"
-        )
+    for key in ("name", "model", "model_reasoning_effort", "sandbox_mode"):
+        if key in expected and profile.get(key) != expected[key]:
+            raise SystemExit(f"{path.relative_to(root)} must set {key!r} to {expected[key]!r}")
+    for key in expected.get("omitted", set()):
+        if key in profile:
+            raise SystemExit(f"{path.relative_to(root)} must omit {key!r}")
+    read_only_fields = expected.get("read_only_text", ())
+    if read_only_fields and not any(
+        "read-only" in str(profile.get(key, "")).lower() for key in read_only_fields
+    ):
+        raise SystemExit(f"{path.relative_to(root)} description/instructions must say read-only")
     print(f"valid Codex role asset: {path.relative_to(root)}")
 PY
 
 # bash -n is an offline parser and does not execute any harness action.
-bash -n "$root"/scripts/*.sh "$root"/tests/test-iron-box-scripts.sh
+bash -n "$root"/scripts/*.sh "$root"/tests/test-iron-box-scripts.sh "$root"/tests/test-desktop-path.sh
+python3 -m py_compile "$root/tests/check_desktop_path.py"
 echo "valid shell: scripts/*.sh tests/test-iron-box-scripts.sh"
 echo "offline validation passed"

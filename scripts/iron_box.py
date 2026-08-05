@@ -18,6 +18,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from pathlib import PurePosixPath, PureWindowsPath
 from typing import Any
 
 try:
@@ -33,6 +34,122 @@ AGENTS_START = "<!-- iron-box:start -->"
 AGENTS_END = "<!-- iron-box:end -->"
 CODEX_ROLE_NAMES = ("luna-worker", "terra-worker", "sol-advisor")
 CODEX_ROLE_ASSET_DIR = ROOT / "assets" / "codex" / "agents"
+PACKAGE_SENTINEL = ROOT / "iron-box-package.json"
+
+# Codex loads custom roles from explicit registrations in config.toml.  Keep
+# the registration path relative to CODEX_HOME so the package remains
+# portable between Unix and Windows installations.
+CODEX_ROLE_REGISTRATIONS = {
+    "luna-worker": "luna_worker",
+    "terra-worker": "terra_worker",
+    "sol-advisor": "sol_advisor",
+}
+
+
+def _normalise_declared_path(value: Any) -> str:
+    """Validate a package-relative POSIX path without touching the filesystem."""
+    if not isinstance(value, str) or not value or "\\" in value:
+        raise SystemExit(f"invalid package path: {value!r}")
+    posix = PurePosixPath(value)
+    windows = PureWindowsPath(value)
+    if posix.is_absolute() or windows.is_absolute() or windows.drive:
+        raise SystemExit(f"package path must be relative: {value!r}")
+    parts = posix.parts
+    if not parts or any(part in ("", ".", "..") for part in parts):
+        raise SystemExit(f"package path is not normalized: {value!r}")
+    normalized = "/".join(parts)
+    if normalized != value:
+        raise SystemExit(f"package path is not normalized: {value!r}")
+    return normalized
+
+
+def validate_package(package_root: Path = ROOT, *, require_development: bool = True) -> dict[str, tuple[str, ...]]:
+    """Validate the immutable package manifest and all declared payload files.
+
+    This is development/CI-only validation. It performs no writes and rejects
+    symlinked path components so a package cannot escape its own root.
+    """
+    regular_directory(package_root)
+    sentinel = package_root / "iron-box-package.json"
+    regular_target(sentinel, allow_missing=False)
+    try:
+        payload = json.loads(sentinel.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise SystemExit(f"invalid package sentinel {sentinel}: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise SystemExit("package sentinel must contain an object")
+    if payload.get("schemaVersion") != 1 or payload.get("name") != "iron-box" or not isinstance(payload.get("version"), str):
+        raise SystemExit("package sentinel must declare schemaVersion 1, name iron-box, and a version")
+    expected_version = payload["version"]
+    manifest_paths = ("plugin.json", ".codex-plugin/plugin.json", ".agents/plugins/marketplace.json", ".github/plugin/marketplace.json")
+    for manifest_name in manifest_paths:
+        manifest_path = package_root / manifest_name
+        regular_target(manifest_path, allow_missing=False)
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            raise SystemExit(f"invalid package manifest {manifest_name}: {exc}") from exc
+        if manifest.get("name") != payload["name"]:
+            raise SystemExit(f"package manifest identity mismatch: {manifest_name}")
+        versions = [manifest.get("version"), manifest.get("metadata", {}).get("version")]
+        versions.extend(item.get("version") for item in manifest.get("plugins", []) if isinstance(item, dict))
+        for version in versions:
+            if version is not None and version != expected_version:
+                raise SystemExit(f"package manifest version mismatch: {manifest_name}")
+        for item in manifest.get("plugins", []):
+            if isinstance(item, dict) and item.get("name") != payload["name"]:
+                raise SystemExit(f"package manifest plugin identity mismatch: {manifest_name}")
+    result: dict[str, tuple[str, ...]] = {}
+    for category in ("runtimeRequired", "developmentRequired", "optionalPayload"):
+        declared = payload.get(category)
+        if category == "optionalPayload" and declared is None:
+            result[category] = ()
+            continue
+        if not isinstance(declared, list) or (category != "optionalPayload" and not declared):
+            raise SystemExit(f"package sentinel {category} must be a non-empty array")
+        paths = tuple(_normalise_declared_path(item) for item in declared)
+        if len(set(paths)) != len(paths):
+            raise SystemExit(f"package sentinel {category} contains duplicate paths")
+        result[category] = paths
+    overlap = set(result["runtimeRequired"]) & set(result["developmentRequired"])
+    if overlap:
+        raise SystemExit(f"package path declared in both categories: {sorted(overlap)}")
+    optional_overlap = (
+        set(result["runtimeRequired"]) | set(result["developmentRequired"])
+    ) & set(result["optionalPayload"])
+    if optional_overlap:
+        raise SystemExit(f"package path declared in both required and optional categories: {sorted(optional_overlap)}")
+    optional_groups: dict[str, list[Path]] = {}
+    for category, paths in result.items():
+        if category == "developmentRequired" and not require_development:
+            continue
+        for relative in paths:
+            target = package_root.joinpath(*relative.split("/"))
+            current = package_root
+            for component in target.relative_to(package_root).parts:
+                current = current / component
+                if current.is_symlink():
+                    raise SystemExit(f"package path escapes via symlink: {relative}")
+            if category == "optionalPayload" and not target.exists() and not target.is_symlink():
+                optional_groups.setdefault(str(Path(relative).parent), []).append(target)
+                continue
+            regular_target(target, allow_missing=False)
+            if category == "optionalPayload":
+                optional_groups.setdefault(str(Path(relative).parent), []).append(target)
+    for group, targets in optional_groups.items():
+        present = [target.exists() for target in targets]
+        if any(present) and not all(present):
+            raise SystemExit(f"optional payload group is incomplete: {group}")
+    return result
+
+
+def package_status(package_root: Path = ROOT) -> int:
+    """Print package validation status for CI; never mutates the package."""
+    manifest = validate_package(package_root)
+    for category, paths in manifest.items():
+        print(f"{category}: {len(paths)} files")
+    print("package integrity: valid")
+    return 0
 
 
 def codex_home() -> Path:
@@ -221,8 +338,13 @@ SECTION_RE = re.compile(r"^\s*\[([^\[].*?)\]\s*$")
 TARGET_TABLES = {"features", "memories", "agents", "desktop"}
 
 
-def validate_config_structure(text: str) -> None:
-    """Reject TOML spellings our line-preserving updater cannot safely edit."""
+def validate_config_structure(text: str, *, allow_role_registrations: bool = False) -> None:
+    """Reject TOML spellings our line-preserving updater cannot safely edit.
+
+    Profile edits intentionally reject nested ``[agents.*]`` tables.  Role
+    installation is the one allow-listed operation that creates those tables,
+    so it opts in explicitly while retaining all other structural safeguards.
+    """
     section: tuple[str, ...] = ()
     for raw in text.splitlines(keepends=True):
         logical = strip_toml_comment(raw).strip()
@@ -243,7 +365,11 @@ def validate_config_structure(text: str) -> None:
                 part.startswith(('"', "'")) for part in raw_parts
             ):
                 raise SystemExit(f"unsafe quoted target table in config: [{raw_section}]")
-            if len(parts) > 1 and parts[0] in TARGET_TABLES:
+            if (
+                len(parts) > 1
+                and parts[0] in TARGET_TABLES
+                and not (allow_role_registrations and parts[0] == "agents")
+            ):
                 raise SystemExit(f"unsafe nested target table in config: {'.'.join(parts)}")
             section = parts
             continue
@@ -415,6 +541,147 @@ def codex_role_paths(home: Path) -> list[tuple[str, Path, Path]]:
     ]
 
 
+def codex_role_registration_values(
+    role_name: str, source: Path
+) -> tuple[str, str, str]:
+    """Return the config key, portable path, and packaged description."""
+    role_key = CODEX_ROLE_REGISTRATIONS[role_name]
+    profile = parse_toml(source)
+    description = profile.get("description")
+    if not isinstance(description, str) or not description.strip():
+        raise SystemExit(f"Codex role asset has no description: {source}")
+    return role_key, f"agents/{source.name}", description
+
+
+def _registration_config_update(
+    original: str,
+    registrations: list[tuple[str, str, str]],
+    *,
+    force: bool,
+) -> tuple[str, dict[str, str]]:
+    """Validate and line-preservingly add/update ``[agents.<role>]`` tables."""
+    validate_config_structure(original, allow_role_registrations=True)
+    if original:
+        try:
+            parsed = tomllib.loads(original)
+        except tomllib.TOMLDecodeError as exc:
+            raise SystemExit(f"malformed TOML config: {exc}") from exc
+    else:
+        parsed = {}
+    agents = parsed.get("agents", {})
+    if not isinstance(agents, dict):
+        raise SystemExit("unsafe agents value in config; expected a table")
+    expected = {
+        role_key: {"config_file": config_file, "description": description}
+        for role_key, config_file, description in registrations
+    }
+    registration_state: dict[str, str] = {}
+    for role_key, values in expected.items():
+        existing = agents.get(role_key)
+        if existing is None:
+            registration_state[role_key] = "missing"
+            continue
+        if not isinstance(existing, dict):
+            raise SystemExit(f"unsafe agents.{role_key} registration in config")
+        matching = all(existing.get(key) == value for key, value in values.items())
+        registration_state[role_key] = "matching" if matching else "different"
+        if not matching and not force:
+            raise SystemExit(
+                f"refusing differing Codex role registration agents.{role_key}; use --force to replace"
+            )
+
+    if not original:
+        lines: list[str] = []
+        for role_key, config_file, description in registrations:
+            lines.extend(
+                (
+                    f"[agents.{role_key}]\n",
+                    f"config_file = {toml_value(config_file)}\n",
+                    f"description = {toml_value(description)}\n",
+                    "\n",
+                )
+            )
+        return "".join(lines), registration_state
+
+    eol = "\r\n" if "\r\n" in original else "\n"
+    lines = original.splitlines(keepends=True)
+    section: tuple[str, ...] = ()
+    seen: set[tuple[str, ...]] = set()
+    wanted = {
+        ("agents", role_key): values for role_key, values in expected.items()
+    }
+    for index, raw in enumerate(lines):
+        logical = strip_toml_comment(raw).strip()
+        section_match = SECTION_RE.match(logical)
+        if section_match:
+            section = tuple(part.strip() for part in section_match.group(1).split("."))
+            continue
+        key_match = KEY_RE.match(logical)
+        if not key_match:
+            continue
+        key = section + tuple(part.strip() for part in key_match.group(1).split("."))
+        values = wanted.get(key[:-1])
+        if values is None or key[-1] not in values:
+            continue
+        seen.add(key)
+        newline = line_eol(raw)
+        body = raw[:-len(newline)] if newline else raw
+        equals = body.find("=")
+        value_part = body[equals + 1 :]
+        comment = ""
+        if "#" in value_part:
+            comment = " " + value_part[value_part.index("#") :].lstrip()
+        lines[index] = body[: equals + 1] + " " + toml_value(values[key[-1]]) + comment + newline
+
+    # Add absent keys to an existing registration table, or append a new
+    # table.  Existing unrelated keys/comments remain byte-for-byte intact.
+    section_ranges: dict[tuple[str, ...], tuple[int, int]] = {}
+    current: tuple[str, ...] = ()
+    section_start = 0
+    for index, raw in enumerate(lines):
+        match = SECTION_RE.match(strip_toml_comment(raw).strip())
+        if match:
+            if current:
+                section_ranges[current] = (section_start, index)
+            elif () not in section_ranges:
+                section_ranges[()] = (0, index)
+            current = tuple(part.strip() for part in match.group(1).split("."))
+            section_start = index
+    section_ranges[current] = (section_start, len(lines))
+    insertions: dict[int, list[str]] = {}
+    deferred: list[tuple[str, ...]] = []
+    for section_name, values in wanted.items():
+        missing = [
+            key for key in values
+            if section_name + (key,) not in seen
+        ]
+        if not missing:
+            continue
+        if section_name in section_ranges:
+            insertions.setdefault(section_ranges[section_name][1], []).extend(
+                f"{key} = {toml_value(values[key])}{eol}" for key in missing
+            )
+        else:
+            deferred.append(section_name)
+    if deferred:
+        if lines and not lines[-1].endswith(("\n", "\r")):
+            lines[-1] += eol
+        for section_name in deferred:
+            lines.append("[" + ".".join(section_name) + "]" + eol)
+            lines.extend(
+                f"{key} = {toml_value(expected[section_name[1]][key])}{eol}"
+                for key in ("config_file", "description")
+            )
+            lines.append(eol)
+    if insertions:
+        lines = [
+            line
+            for index in range(len(lines) + 1)
+            for line in ([*insertions.get(index, [])] + ([lines[index]] if index < len(lines) else []))
+        ]
+    return "".join(lines), registration_state
+
+
 def install_codex_roles(home: Path, *, dry_run: bool, force: bool) -> None:
     """Install packaged Codex roles with an explicit apply and optional force.
 
@@ -425,12 +692,16 @@ def install_codex_roles(home: Path, *, dry_run: bool, force: bool) -> None:
     # symlinked home could redirect all role writes outside the selected root.
     regular_directory(home)
     destination_dir = home / "agents"
+    destination_preexisted = destination_dir.exists()
     regular_directory(destination_dir)
     plans: list[tuple[str, Path, Path, bytes, bool, bytes | None, int | None]] = []
+    registrations: list[tuple[str, str, str]] = []
     for name, source, target in codex_role_paths(home):
         regular_target(source, allow_missing=False)
         regular_target(target)
         data = source.read_bytes()
+        role_key, config_file, description = codex_role_registration_values(name, source)
+        registrations.append((role_key, config_file, description))
         existing = target.exists()
         original = target.read_bytes() if existing else None
         original_mode = stat.S_IMODE(target.stat().st_mode) if existing else None
@@ -441,15 +712,33 @@ def install_codex_roles(home: Path, *, dry_run: bool, force: bool) -> None:
             )
         plans.append((name, source, target, data, identical, original, original_mode))
 
+    config_path = home / "config.toml"
+    regular_target(config_path)
+    original_config = read_text(config_path) if config_path.exists() else ""
+    updated_config, registration_state = _registration_config_update(
+        original_config, registrations, force=force
+    )
+    config_changed = updated_config != original_config
+    config_backup = Path(str(config_path) + ".bak")
+    regular_target(config_backup)
+
     if dry_run:
         for name, source, target, _data, identical, _original, _mode in plans:
             if identical:
                 print(f"Codex role {name}: unchanged ({target})")
             else:
                 print(f"Codex role {name}: would install {source} -> {target}")
+        for role_key, _config_file, _description in registrations:
+            state = registration_state[role_key]
+            print(
+                f"Codex role {role_key}: {state if state == 'matching' else 'would register'}"
+                f" ({config_path})"
+            )
         return
 
     written: list[tuple[Path, bytes | None, int | None]] = []
+    config_backup_original = config_backup.read_bytes() if config_backup.exists() else None
+    config_backup_mode = stat.S_IMODE(config_backup.stat().st_mode) if config_backup.exists() else None
     try:
         for name, source, target, data, identical, original, original_mode in plans:
             if identical:
@@ -460,6 +749,18 @@ def install_codex_roles(home: Path, *, dry_run: bool, force: bool) -> None:
             written.append((target, original, original_mode))
             atomic_write(target, data, backup=False)
             print(f"Codex role {name}: installed {source} -> {target}")
+        if config_changed:
+            written.append(
+                (
+                    config_path,
+                    original_config.encode("utf-8") if config_path.exists() else None,
+                    stat.S_IMODE(config_path.stat().st_mode) if config_path.exists() else None,
+                )
+            )
+            atomic_write(config_path, updated_config.encode("utf-8"), backup=True)
+            print(f"Codex role registrations: updated ({config_path})")
+        else:
+            print(f"Codex role registrations: unchanged ({config_path})")
     except BaseException:
         rollback_errors: list[BaseException] = []
         for target, original, original_mode in reversed(written):
@@ -490,10 +791,31 @@ def install_codex_roles(home: Path, *, dry_run: bool, force: bool) -> None:
             raise RuntimeError(
                 f"Codex role installation failed and rollback was incomplete: {details}"
             ) from rollback_errors[0]
+        try:
+            regular_target(config_backup)
+            if config_backup_original is None:
+                if config_backup.exists():
+                    config_backup.unlink()
+            else:
+                config_backup.write_bytes(config_backup_original)
+                if config_backup_mode is not None:
+                    os.chmod(config_backup, config_backup_mode)
+        except BaseException as backup_error:
+            raise RuntimeError(f"Codex role installation rollback failed for backup: {backup_error}") from backup_error
+        if not destination_preexisted and destination_dir.exists():
+            try:
+                destination_dir.rmdir()
+            except OSError:
+                pass
         raise
 
 
-def codex_roles_status(home: Path) -> None:
+def codex_roles_status(home: Path, config_data: dict[str, Any] | None = None) -> None:
+    registrations: dict[str, Any] = {}
+    if config_data is not None:
+        agents = config_data.get("agents", {})
+        if isinstance(agents, dict):
+            registrations = agents
     for name, source, target in codex_role_paths(home):
         if not source.exists():
             state = "packaged asset missing"
@@ -505,18 +827,39 @@ def codex_roles_status(home: Path) -> None:
             state = "matching"
         else:
             state = "different"
-        print(f"Codex role {name}: {state} ({target})")
+        role_key = CODEX_ROLE_REGISTRATIONS[name]
+        registration = registrations.get(role_key)
+        expected_path = f"agents/{source.name}"
+        expected_description = None
+        if source.exists() and source.is_file():
+            try:
+                expected_description = parse_toml(source).get("description")
+            except SystemExit:
+                expected_description = None
+        registration_state = "missing"
+        if isinstance(registration, dict):
+            if (
+                registration.get("config_file") == expected_path
+                and isinstance(expected_description, str)
+                and registration.get("description") == expected_description
+            ):
+                registration_state = "matching"
+            else:
+                registration_state = "different"
+        print(
+            f"Codex role {name}: {state}; registration {registration_state} ({target})"
+        )
 
 
 def status() -> int:
     home = codex_home()
     config = home / "config.toml"
     print("Iron Box status (read-only; no client or network invocation)")
-    codex_roles_status(home)
     for label, names in (("Codex", ("codex",)), ("Copilot", ("copilot", "github-copilot-cli"))):
         found = next((shutil.which(name) for name in names if shutil.which(name)), None)
         print(f"{label}: {'available (' + found + ')' if found else 'absent'}")
     if not config.exists():
+        codex_roles_status(home, {})
         print(f"config: absent ({config})")
         print("catalog: not configured")
         print("browser capability: not configured (not live-verified)")
@@ -526,8 +869,10 @@ def status() -> int:
     try:
         parsed = parse_toml(config)
     except SystemExit as exc:
+        codex_roles_status(home, None)
         print(f"config: malformed ({config}; {exc})")
         return 0
+    codex_roles_status(home, parsed)
     print(f"config: present ({config})")
     plugins = parsed.get("plugins", {})
     if not isinstance(plugins, dict):
@@ -600,6 +945,11 @@ def apply_main(argv: list[str]) -> int:
 
 
 def main() -> int:
+    if len(sys.argv) > 1 and sys.argv[1] == "validate-package":
+        package_root = Path(sys.argv[2]).expanduser() if len(sys.argv) > 2 else ROOT
+        if len(sys.argv) > 3:
+            raise SystemExit("usage: iron_box.py validate-package [package-root]")
+        return package_status(package_root)
     if len(sys.argv) > 1 and sys.argv[1] == "status":
         return status()
     if len(sys.argv) > 1 and sys.argv[1] == "apply":

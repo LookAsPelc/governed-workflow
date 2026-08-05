@@ -156,6 +156,23 @@ for role in luna-worker terra-worker sol-advisor; do
   same "$root/assets/codex/agents/$role.toml" "$roles_home/agents/$role.toml"
   [[ "$(stat -c '%a' "$roles_home/agents/$role.toml")" == 644 ]] || fail "unexpected permissions for $role"
 done
+contains '[agents.luna_worker]' "$roles_home/config.toml"
+contains 'config_file = "agents/luna-worker.toml"' "$roles_home/config.toml"
+contains '[agents.terra_worker]' "$roles_home/config.toml"
+contains '[agents.sol_advisor]' "$roles_home/config.toml"
+python3 - "$roles_home/config.toml" <<'PY'
+import sys
+import tomllib
+
+with open(sys.argv[1], "rb") as handle:
+    config = tomllib.load(handle)
+agents = config["agents"]
+assert agents["luna_worker"]["config_file"] == "agents/luna-worker.toml"
+assert agents["terra_worker"]["config_file"] == "agents/terra-worker.toml"
+assert agents["sol_advisor"]["config_file"] == "agents/sol-advisor.toml"
+for role in ("luna_worker", "terra_worker", "sol_advisor"):
+    assert agents[role]["description"]
+PY
 CODEX_HOME="$roles_home" bash "$root/scripts/apply-iron-box.sh" --apply --install-codex-roles > "$tmp/roles.reapply"
 contains 'unchanged' "$tmp/roles.reapply"
 printf 'drift\n' > "$roles_home/agents/luna-worker.toml"
@@ -264,6 +281,46 @@ for path, data in before.items():
     assert path.read_bytes() == data, f"transaction failed to restore {path}"
 PY
 
+# A failure while registering the roles rolls back both copied files and the
+# config/backup bytes written earlier in the same transaction.
+python3 - "$root" "$tmp/registration-failure-home" <<'PY'
+import importlib.util
+import pathlib
+
+root = pathlib.Path(__import__("sys").argv[1])
+home = pathlib.Path(__import__("sys").argv[2])
+home.mkdir(parents=True)
+(home / "config.toml").write_text('model = "keep-me"\n')
+(home / "config.toml.bak").write_text('old-backup\n')
+before_config = (home / "config.toml").read_bytes()
+before_backup = (home / "config.toml.bak").read_bytes()
+spec = importlib.util.spec_from_file_location("iron_box", root / "scripts" / "iron_box.py")
+assert spec and spec.loader
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+real_atomic_write = module.atomic_write
+calls = 0
+
+def fail_registration(path, data, *, backup=True):
+    global calls
+    calls += 1
+    if calls == 4:
+        real_atomic_write(path, data, backup=backup)
+        raise RuntimeError("injected registration failure")
+    return real_atomic_write(path, data, backup=backup)
+
+module.atomic_write = fail_registration
+try:
+    module.install_codex_roles(home, dry_run=False, force=False)
+except RuntimeError as exc:
+    assert str(exc) == "injected registration failure"
+else:
+    raise AssertionError("injected registration failure was not raised")
+assert (home / "config.toml").read_bytes() == before_config
+assert (home / "config.toml.bak").read_bytes() == before_backup
+assert not (home / "agents").exists()
+PY
+
 # A conflict in a later role proves the all-target preflight leaves earlier
 # targets untouched; dry-run and refusal also leave the complete state intact.
 conflict_home="$tmp/later-conflict-home"
@@ -276,6 +333,23 @@ contains 'use --force' "$tmp/roles.later-conflict"
 [[ ! -e "$conflict_home/agents/luna-worker.toml" ]] || fail 'later conflict wrote earlier role'
 CODEX_HOME="$conflict_home" bash "$root/scripts/apply-iron-box.sh" --install-codex-roles > "$tmp/roles.later-dry" 2>&1 || true
 [[ ! -e "$conflict_home/agents/luna-worker.toml" ]] || fail 'conflict dry-run wrote earlier role'
+
+# A conflicting registration is preflighted with role targets, so it cannot
+# leave copied role files behind.
+registration_conflict_home="$tmp/registration-conflict-home"
+mkdir -p "$registration_conflict_home"
+cat > "$registration_conflict_home/config.toml" <<'EOF'
+[agents.luna_worker]
+config_file = "other.toml"
+description = "conflict"
+EOF
+cp "$registration_conflict_home/config.toml" "$tmp/registration-conflict.before"
+if CODEX_HOME="$registration_conflict_home" bash "$root/scripts/apply-iron-box.sh" --apply --install-codex-roles > "$tmp/registration-conflict.out" 2>&1; then
+  fail 'conflicting registration accepted'
+fi
+same "$registration_conflict_home/config.toml" "$tmp/registration-conflict.before"
+[[ ! -e "$registration_conflict_home/agents" ]] || fail 'registration conflict wrote role directory'
+contains 'use --force' "$tmp/registration-conflict.out"
 
 # Integration-style parser check against the installed Codex binary.  It uses
 # an isolated CODEX_HOME and `features list`: no model call, user config, or
@@ -299,5 +373,87 @@ if codex_bin="$(command -v codex 2>/dev/null)"; then
 else
   echo 'Codex parser check skipped (codex not on PATH)'
 fi
+
+# Package integrity is an offline development/CI check.  It must not write to
+# the package, accept a skill-only/fake CODEX_HOME tree, or follow unsafe paths.
+python3 - "$root" "$tmp/package-check" <<'PY'
+import importlib.util
+import json
+import pathlib
+import shutil
+
+root = pathlib.Path(__import__("sys").argv[1])
+work = pathlib.Path(__import__("sys").argv[2])
+spec = importlib.util.spec_from_file_location("iron_box", root / "scripts/iron_box.py")
+assert spec and spec.loader
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+before = (root / "iron-box-package.json").read_bytes()
+assert module.validate_package(root)["runtimeRequired"]
+assert (root / "iron-box-package.json").read_bytes() == before
+
+def rejects(path):
+    try:
+        module.validate_package(path)
+    except SystemExit:
+        return
+    raise AssertionError(f"accepted invalid package: {path}")
+
+fake = work / "fake-codex"
+(fake / "skills" / "iron-box-onboarding").mkdir(parents=True)
+(fake / "skills" / "iron-box-onboarding" / "SKILL.md").write_text("---\nname: fake\n---\n")
+rejects(fake)
+
+missing = work / "missing"
+shutil.copytree(root, missing, symlinks=True)
+(missing / "assets" / "app-icon.png").unlink()
+rejects(missing)
+
+optional_absent = work / "optional-absent"
+shutil.copytree(root, optional_absent, symlinks=True)
+shutil.rmtree(optional_absent / "assets" / "pets" / "jax")
+assert module.validate_package(optional_absent)["optionalPayload"]
+
+runtime_only = work / "runtime-only"
+shutil.copytree(root, runtime_only, symlinks=True)
+for relative in module.validate_package(root)["developmentRequired"]:
+    (runtime_only / relative).unlink()
+assert module.validate_package(runtime_only, require_development=False)["runtimeRequired"]
+
+wrong_identity = work / "wrong-identity"
+shutil.copytree(root, wrong_identity, symlinks=True)
+wrong_manifest = json.loads((wrong_identity / "iron-box-package.json").read_text())
+wrong_manifest["name"] = "not-iron-box"
+(wrong_identity / "iron-box-package.json").write_text(json.dumps(wrong_manifest))
+rejects(wrong_identity)
+wrong_version = work / "wrong-version"
+shutil.copytree(root, wrong_version, symlinks=True)
+wrong_manifest = json.loads((wrong_version / "iron-box-package.json").read_text())
+wrong_manifest["version"] = "9.9.9"
+(wrong_version / "iron-box-package.json").write_text(json.dumps(wrong_manifest))
+rejects(wrong_version)
+
+partial_optional = work / "partial-optional"
+shutil.copytree(root, partial_optional, symlinks=True)
+(partial_optional / "assets" / "pets" / "jax" / "spritesheet.webp").unlink()
+rejects(partial_optional)
+
+traversal = work / "traversal"
+traversal.mkdir(parents=True)
+(traversal / "iron-box-package.json").write_text(json.dumps({
+    "runtimeRequired": ["../outside"], "developmentRequired": ["iron-box-package.json"]
+}))
+rejects(traversal)
+
+escaped = work / "escaped"
+shutil.copytree(root, escaped, symlinks=True)
+(escaped / "outside.txt").write_text("outside")
+(escaped / "escape").symlink_to(escaped / "outside.txt")
+manifest = json.loads((escaped / "iron-box-package.json").read_text())
+manifest["optionalPayload"].append("escape")
+(escaped / "iron-box-package.json").write_text(json.dumps(manifest))
+rejects(escaped)
+assert (root / "iron-box-package.json").read_bytes() == before
+PY
 
 echo 'Iron Box script tests passed'

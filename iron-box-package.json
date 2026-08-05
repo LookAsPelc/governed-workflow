@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "name": "iron-box",
+  "version": "0.1.1",
+  "runtimeRequired": [
+    "iron-box-package.json",
+    "plugin.json",
+    ".codex-plugin/plugin.json",
+    ".agents/plugins/marketplace.json",
+    ".github/plugin/marketplace.json",
+    "agents/iron-box-reviewer.agent.md",
+    "skills/iron-box-onboarding/SKILL.md",
+    "skills/iron-box-onboarding/agents/openai.yaml",
+    "skills/iron-box-orchestration/SKILL.md",
+    "templates/AGENTS.global.recommended.md",
+    "templates/iron-box.portable.toml",
+    "assets/app-icon.png",
+    "assets/codex/agents/luna-worker.toml",
+    "assets/codex/agents/terra-worker.toml",
+    "assets/codex/agents/sol-advisor.toml"
+  ],
+  "developmentRequired": [
+    "scripts/iron_box.py",
+    "scripts/apply-iron-box.sh",
+    "scripts/iron-box-status.sh",
+    "scripts/validate.sh",
+    "tests/test-iron-box-scripts.sh"
+  ],
+  "optionalPayload": [
+    "assets/pets/jax/pet.json",
+    "assets/pets/jax/spritesheet.webp"
+  ]
+}

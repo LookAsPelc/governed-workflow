@@ -1,6 +1,6 @@
 {
   "name": "iron-box",
   "owner": {"name": "Iron Box maintainers"},
-  "metadata": {"description": "Iron Box agent workflow and user-owned harness setup.", "version": "0.1.0"},
-  "plugins": [{"name": "iron-box", "description": "Iron Box agent workflow and user-owned harness setup.", "version": "0.1.0", "source": ".", "license": "MIT", "category": "Developer Tools"}]
+  "metadata": {"description": "Iron Box agent workflow and user-owned harness setup.", "version": "0.1.1"},
+  "plugins": [{"name": "iron-box", "description": "Iron Box agent workflow and user-owned harness setup.", "version": "0.1.1", "source": ".", "license": "MIT", "category": "Developer Tools"}]
 }

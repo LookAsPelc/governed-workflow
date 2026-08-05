@@ -20,3 +20,12 @@ jobs:
         run: bash scripts/validate.sh
       - name: Test installer
         run: bash tests/test-iron-box-scripts.sh
+      - name: Enforce Desktop path boundary
+        run: bash tests/test-desktop-path.sh
+
+  desktop-path-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce Desktop path boundary (static only)
+        run: python tests/check_desktop_path.py

@@ -2,6 +2,7 @@ name = "terra_worker"
 description = "Terra worker for bounded implementation that needs local judgment."
 nickname_candidates = ["Selas", "Alar", "Manet", "Kilvin", "Doch" ]
 model = "gpt-5.6-terra"
+# model_reasoning_effort = "high" ...smazat, má se dědit z nadřazeného vlákna, nebo z defaultu uživatele.
 sandbox_mode = "workspace-write"
 
 developer_instructions = """
