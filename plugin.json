@@ -1,10 +1,10 @@
 {
-  "name": "governed-workflow",
+  "name": "iron-box",
   "version": "0.1.0",
-  "description": "A user-owned Codex and Copilot harness built around Sol-Governed Codex.",
-  "author": {"name": "Governed Workflow maintainers"},
+  "description": "A user-owned Iron Box workflow for Codex and GitHub Copilot CLI.",
+  "author": {"name": "Iron Box maintainers"},
   "license": "MIT",
-  "keywords": ["codex", "copilot", "sol-governed", "harness", "workflow"],
+  "keywords": ["codex", "copilot", "agent", "orchestration", "workflow"],
   "category": "Developer Tools",
   "agents": "agents/",
   "skills": "skills/"

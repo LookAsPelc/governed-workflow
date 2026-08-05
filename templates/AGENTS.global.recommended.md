@@ -1,25 +1,25 @@
-<!-- governed-workflow:start -->
+<!-- iron-box:start -->
 # Development phases
 
 1. Clarify the objective, constraints, and acceptance criteria.
 2. Find a solution and implement it.
-   - For development, first create a goal and a concrete TODO list.
-   - Leave useful comments where they explain an invariant, a safety boundary, or a non-obvious decision.
+   - The root agent is the orchestrator: create a goal and a concrete TODO list before development.
+   - Give every worker a distinct ownership boundary, acceptance criteria, verification command, and escalation condition.
+   - Leave useful comments where they explain an invariant, safety boundary, or non-obvious decision.
    - Present the reviewable implementation to the user before release cleanup; discuss and iterate.
 3. Hand off: cleanup, full tests, static checks, linting, and changelog as appropriate.
 
-# Workflow
+# Iron Box workflow
 
-- Build development workflow around `sol-governed-workers` when it is available.
-- The root agent owns requirements, integration, verification, and communication.
-- Prefer a Luna worker for settled mechanical work; use Terra for bounded implementation requiring judgment; use Sol only for architecture, risky decisions, and final evidence gates.
-- Keep subagents at depth one. Give each one an owned area, acceptance criteria, and an escalation condition.
-- Use Superpowers selectively: TDD is a good fit for bug fixes, not a mandatory ritual for every new feature.
-- Preserve unrelated changes. Validate actual diffs and relevant commands before claiming success.
+- Keep the root agent responsible for requirements, integration, verification, and communication.
+- Calibrate Luna deliberately: low for mechanical/research work, medium for ordinary implementation, and high for integration or difficult debugging.
+- Sol is normally medium; reserve higher reasoning for an explicit architecture, security, or final-evidence review.
+- Never interrupt a running worker merely to change its reasoning level.
+- Keep ownership clear, preserve unrelated changes, and distinguish collected output from proven runtime behavior.
 
 # Safety and privacy
 
 - Never request, print, commit, or persist passwords, API keys, tokens, or private customer data.
 - Do not change global configuration, project instructions, models, or external integrations without explicit user confirmation.
 - Before destructive operations, identify the exact target and explain the effect.
-<!-- governed-workflow:end -->
+<!-- iron-box:end -->

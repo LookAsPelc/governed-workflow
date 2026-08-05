@@ -1,19 +1,20 @@
 {
-  "name": "governed-workflow",
+  "name": "iron-box",
   "version": "0.1.0",
-  "description": "A user-owned Codex and Copilot harness built around Sol-Governed Codex.",
-  "author": {"name": "Governed Workflow maintainers"},
+  "description": "A user-owned Iron Box workflow for Codex and GitHub Copilot CLI.",
+  "author": {"name": "Iron Box maintainers"},
   "license": "MIT",
-  "keywords": ["codex", "copilot", "sol-governed", "harness", "workflow"],
+  "keywords": ["codex", "copilot", "agent", "orchestration", "workflow"],
   "skills": "./skills/",
   "interface": {
-    "displayName": "Governed Workflow",
-    "shortDescription": "User-owned Sol-Governed harness setup",
-    "longDescription": "An explicit, user-approved setup workflow for a Sol-Governed Codex harness and compatible GitHub Copilot CLI skills.",
-    "developerName": "Governed Workflow maintainers",
+    "displayName": "Iron Box",
+    "shortDescription": "User-owned agent workflow setup",
+    "longDescription": "An explicit, user-approved setup workflow for Codex and compatible GitHub Copilot CLI orchestration.",
+    "developerName": "Iron Box maintainers",
     "category": "Developer Tools",
     "capabilities": ["Interactive", "Read", "Write"],
-    "defaultPrompt": ["Audit my Sol-Governed Codex setup.", "Set up my personal governed harness.", "Show the recommended global AGENTS.md."],
+    "defaultPrompt": ["Start Iron Box onboarding.", "Audit my current agent setup.", "Show the recommended configuration changes."],
+    "logo": "./assets/app-icon.png",
     "brandColor": "#F59E0B"
   }
 }

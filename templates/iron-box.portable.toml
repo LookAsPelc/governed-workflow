@@ -1,0 +1,28 @@
+# Portable author profile with an intentionally small allow-list of values.
+model = "gpt-5.6-terra"
+model_reasoning_effort = "high"
+
+[features]
+memories = true
+default_mode_request_user_input = true
+
+[memories]
+generate_memories = true
+use_memories = true
+
+[agents]
+enabled = true
+max_threads = 4
+max_depth = 2
+default_subagent_model = "gpt-5.6-luna"
+default_subagent_reasoning_effort = "high"
+
+[desktop]
+followUpQueueMode = "steer"
+keepRemoteControlAwakeWhilePluggedIn = true
+usePointerCursors = true
+conversationDetailMode = "STEPS_COMMANDS"
+ambient-suggestions-enabled = true
+show-context-window-usage = true
+defaultTerminalLocation = "right"
+hotkey-window-projectless-default-enabled = true

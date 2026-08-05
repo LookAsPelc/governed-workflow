@@ -1,19 +1,40 @@
 # Privacy and safety
 
-Governed Workflow is a public, non-telemetry workflow. It does not collect
-usage data, phone home, or send project content to its maintainers.
+Iron Box is a public, non-telemetry workflow. It does not collect usage data,
+phone home, or send project content to its maintainers.
 
-The status and validation commands are local checks. The harness apply script
-changes only the user-approved managed `AGENTS.md` block unless the user also
-explicitly supplies `--apply --install-sol PATH`. That option delegates to a
-reviewed upstream Sol installer, which may write its Codex skills and
-role/profile TOML files under `CODEX_HOME`; show that impact before consent.
-Governed Workflow itself does not silently write settings or credentials and
-does not configure Copilot TOML roles. Context7 and other optional providers
-may receive queries and client-selected context; review the provider policy
-and choose skip when that boundary is not acceptable.
+## Local command boundaries
 
-No upstream dependency is installed or updated automatically. Review optional
-upstream components, their permissions, and their release provenance before
-choosing to install them. Confirm exact targets before destructive operations
-and preserve unrelated user instructions.
+`scripts/iron-box-status.sh` is read-only. It inspects local Codex and Copilot
+availability, configuration, capability flags, and model catalogs without
+starting a client or making a network request.
+
+`scripts/apply-iron-box.sh` is a dry-run by default. A write requires both an
+explicit action and `--apply`; invoking it without an action makes no changes.
+The supported actions are narrowly scoped:
+
+- `--profile` updates only the allow-listed portable profile settings in
+  `$CODEX_HOME/config.toml`.
+- `--write-global-agents` updates only the managed Iron Box block in
+  `$CODEX_HOME/AGENTS.md`, preserving unrelated instructions.
+- `--native-luna-v2` is an explicit Luna catalog override. It updates only the
+  single Luna catalog version and its derived `model_catalog_json` setting;
+  `--copy-models-cache PATH` additionally copies a supplied fresh V2 cache.
+
+The portable profile does not manage sandbox policy, approval policy, MCP
+servers, credentials, arbitrary runtime paths, or project trust. Iron Box does
+not install a client, run project code, or change project files. The native
+Luna action is the explicit exception for its derived catalog path and does
+not refresh a cache unless `--copy-models-cache` is separately selected.
+
+Existing files changed by an approved action receive a `.bak` backup, and
+updates are atomic. Malformed, duplicate, symlinked, or non-regular targets are
+rejected before a write. A stale, missing, malformed, or mismatched model
+catalog/cache is reported as a warning; it is not silently refreshed or
+removed.
+
+Optional documentation providers may receive queries and client-selected
+context; review the provider policy and choose skip when that boundary is not
+acceptable. Upstream dependencies are never installed or updated silently.
+Confirm exact targets before destructive operations and preserve unrelated
+user instructions.

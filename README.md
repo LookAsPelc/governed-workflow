@@ -1,92 +1,78 @@
-# Governed Workflow
+# Iron Box
 
-Governed Workflow is a small, user-owned workflow layer for Sol-Governed Codex
-and GitHub Copilot CLI. It keeps the shared skills flat and portable while
-making configuration changes conversational, reviewable, and opt-in.
+![Iron Box](assets/app-icon.png)
 
-This repository is published at
+Iron Box is a small, user-owned governance harness for Codex and GitHub
+Copilot CLI. It gives an agent a steady place to stand before it starts
+changing things: inspect the client that is actually running, check the
+current documentation, explain the proposed action, and wait for your
+consent.
+
+The name is a metaphor, not a promise of invincibility. An iron box is a
+sturdy container for useful tools and bright ideas: it keeps the workflow
+together while leaving the key in your hands. The project borrows a little
+wonder from moonlit stories. Project prose and implementation are original
+except for the adapted third-party profiles documented in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+The public repository is
 <https://github.com/LookAsPelc/governed-workflow> on the `main` branch. The
-public repository and plugin identifier are `governed-workflow`; future
-updates should continue using this repository and identifier. This pre-release
-project does not make claims about tagged releases or installation availability
-beyond the documented flows below.
+product and plugin identity are **Iron Box** (`iron-box`).
 
-## Install for the client you use
+## What it does
 
-For Codex, install this repository using the Codex plugin flow. The
-`.codex-plugin/plugin.json` exposes the shared Codex skills under `skills/`;
-the `agents/*.agent.md` files are GitHub Copilot custom-agent definitions and
-are not loaded by that Codex manifest as role profiles. If you are installing skills manually, copy each
-`skills/<name>/` directory to `$CODEX_HOME/skills/<name>/` (normally
-`~/.codex/skills/<name>/`); the shared skill source remains
-`skills/<name>/SKILL.md`. To inspect the local harness, run:
+Iron Box provides:
 
-```bash
-bash scripts/harness-status.sh
-```
+- client and capability checks that prefer the installed client's current,
+  official documentation;
+- explicit, reviewable approval gates for configuration and optional
+  dependencies;
+- portable, narrowly scoped local changes that preserve unrelated user
+  instructions;
+- read-only status checks and offline validation scripts for inspecting the
+  harness without starting a client or calling a network service; and
+- a consent-gated onboarding skill for adapting the workflow to Codex or the
+  documented Copilot CLI surface.
 
-To propose the managed global instructions, run a dry-run first:
+After installation, read the
+[`iron-box-onboarding` skill](skills/iron-box-onboarding/SKILL.md). It is the
+authoritative guide to the current onboarding conversation and client-specific
+choices; the README intentionally keeps those details out of the bootstrap.
 
-```bash
-bash scripts/apply-harness.sh --write-global-agents
-```
+### A small companion
 
-Only after reviewing that output should a user choose
-`--apply --write-global-agents`. A reviewed Sol installer can be run only with
-an explicit `--apply --install-sol PATH`; after that confirmation it delegates
-to the reviewed upstream installer, which may write its Sol skill and
-role/profile TOML files under `CODEX_HOME`. Offline validation is opt-in with
-`--validate-sol`.
+Jax is an optional Iron Box companion, kept in
+[`assets/pets/jax`](assets/pets/jax). Think of him as a bright little footnote
+to the journey, not a hidden trick: Jax is **not** an undocumented plugin
+feature. Set him up only through the currently supported client UI/flow, and
+only after onboarding has verified that the client is compatible.
 
-For Copilot CLI, copy or link the individual `skills/<name>/` directories into
-the repository `.github/skills/` directory or `~/.copilot/skills/<name>/`.
-Copy the two `agents/*.agent.md` files into `.github/agents/` or
-`~/.copilot/agents/` when you want those Copilot agents. Keep the `.agent.md`
-frontmatter intact. Copilot does not load
-Codex plugin manifests, Sol role profiles, or Codex TOML configuration; the
-Sol/Luna/Terra routing is guidance for the conversation, not a Copilot role
-installation.
+## Agent-first bootstrap
 
-## Optional upstream components
+When an agent receives this repository URL, it should:
 
-Nothing in this public repository installs or updates upstream dependencies
-automatically. When useful, review and opt into the upstream projects instead:
+1. Identify the current client.
+2. Consult the current official documentation and capabilities.
+3. Install Iron Box through the supported flow.
+4. Request a client restart.
+5. Immediately invoke `$iron-box-onboarding`.
 
-- [Superpowers](https://github.com/obra/superpowers) for optional development
-  workflows. Use it selectively; TDD is especially useful for bug fixes, not a
-  mandatory ritual for every feature.
-- [Vercel skills and `find-skills`](https://github.com/vercel-labs/skills) for
-  optional discovery when local skills do not cover a real need.
-- `design-doc-mermaid` only when a Mermaid diagram materially clarifies a
-  decision; validate the Mermaid before committing it.
-- Context7 through a currently available curated Codex App when possible. If
-  that App is unavailable, offer remote OAuth MCP, local MCP, or skip; offer
-  the same three alternatives for Copilot. Never put an API key in this
-  repository or a client config file.
+## Safety and privacy
 
-The `--install-sol PATH` option invokes a reviewed upstream Sol-Governed Codex
-installer; it does not vendor that project here. Review what that installer
-will change before approving it.
+Iron Box has no telemetry and does not send project content to its maintainers.
+Optional documentation providers may receive queries and context selected by
+the active client; review that boundary and skip a provider when it is not
+acceptable. Upstream dependencies are never installed or updated silently.
+Configuration changes require explicit user approval, preserve unrelated
+instructions, and confirm exact targets before destructive work. See
+[docs/privacy.md](docs/privacy.md) for the concise contract.
 
 ## Verification
 
-All checks below are offline and do not contact a provider:
+The repository includes offline validation for its manifests and local
+workflow scripts. Run these from the repository root after installation:
 
 ```bash
 bash scripts/validate.sh
-bash tests/test-harness-scripts.sh
+bash tests/test-iron-box-scripts.sh
 ```
-
-The first command validates JSON and skill/agent frontmatter. The second
-exercises dry-run, explicit apply, marker preservation, and installer safety.
-
-## Privacy
-
-This project has no telemetry and does not send project content to its
-maintainers. Optional documentation providers may receive queries and context
-selected by the active client; review that boundary and choose skip when it is
-not acceptable. See [docs/privacy.md](docs/privacy.md) for the concise privacy
-and destructive-operation contract.
-
-Upstream dependencies are never installed or updated silently. Preserve
-unrelated user instructions and confirm exact targets before destructive work.
