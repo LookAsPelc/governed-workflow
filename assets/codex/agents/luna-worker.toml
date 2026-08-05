@@ -1,5 +1,5 @@
 name = "luna_worker"
-description = "Luna Low worker for mechanical, tightly bounded work with settled decisions."
+description = "Luna worker for mechanical, tightly bounded work with settled decisions."
 nickname_candidates = ["Luna", "Auri", "Bast", "Ludis", "Moon", "Foxen", "Shaed"]
 model = "gpt-5.6-luna"
 model_reasoning_effort = "high"

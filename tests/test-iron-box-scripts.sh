@@ -38,8 +38,8 @@ contains 'Codex: available' "$tmp/status.absent"
 contains 'Copilot: available' "$tmp/status.absent"
 [[ ! -e "$tmp/executed" ]] || fail 'status executed a client'
 
-# Build a representative config/catalog. Status must report browser and
-# computer-use plugin state and Luna V1 incompatibility without networking.
+# Build a representative config/catalog. Status reports configured capabilities
+# without claiming that a live client probe passed.
 cat > "$home/config.toml" <<EOF
 model = "old"
 model_catalog_json = "$home/model-catalogs/catalog.json"
@@ -61,9 +61,20 @@ cat > "$home/model-catalogs/catalog.json" <<'EOF'
 }
 EOF
 CODEX_HOME="$home" bash "$root/scripts/iron-box-status.sh" > "$tmp/status.v1"
-contains 'browser capability: available' "$tmp/status.v1"
-contains 'computer-use capability: available' "$tmp/status.v1"
-contains 'native Luna V2: incompatible' "$tmp/status.v1"
+contains 'browser capability: configured (not live-verified)' "$tmp/status.v1"
+contains 'computer-use capability: configured (not live-verified)' "$tmp/status.v1"
+contains 'Luna compatibility: requires a live client probe' "$tmp/status.v1"
+
+# The removed native Luna override flags are rejected and must not mutate any
+# catalog, cache, or config file.
+cp "$home/config.toml" "$tmp/native.config.before"
+cp "$home/model-catalogs/catalog.json" "$tmp/native.catalog.before"
+if CODEX_HOME="$home" bash "$root/scripts/apply-iron-box.sh" --apply --legacy-catalog-edit > "$tmp/native.removed" 2>&1; then
+  fail 'removed native Luna flag accepted'
+fi
+same "$home/config.toml" "$tmp/native.config.before"
+same "$home/model-catalogs/catalog.json" "$tmp/native.catalog.before"
+contains 'unrecognized arguments' "$tmp/native.removed"
 
 # Global AGENTS and portable profile are dry-runs by default and idempotent on
 # explicit apply. Existing unrelated instructions and security settings stay.
@@ -132,115 +143,6 @@ for unsafe in \
   contains 'unsafe' "$tmp/unsafe.out"
 done
 
-# An absent root catalog key is inserted before the first table, never nested
-# under the existing plugin table.
-cat > "$home/config.toml" <<'EOF'
-[plugins.foo]
-enabled = true
-EOF
-cat > "$home/model-catalogs/desktop-multi-agent.json" <<'EOF'
-{"models":[{"slug":"gpt-5.6-luna","multi_agent_version":"v1"}]}
-EOF
-CODEX_HOME="$home" bash "$root/scripts/apply-iron-box.sh" --apply --native-luna-v2 > "$tmp/root-catalog.out"
-python3 - "$home/config.toml" <<'PY'
-import sys, tomllib
-x = tomllib.load(open(sys.argv[1], "rb"))
-assert isinstance(x["model_catalog_json"], str)
-assert x["plugins"]["foo"]["enabled"] is True
-assert open(sys.argv[1], encoding="utf-8").read().splitlines()[0].startswith("model_catalog_json =")
-PY
-
-cat > "$home/config.toml" <<EOF
-model_catalog_json = "model-catalogs/catalog.json"
-EOF
-cat > "$home/model-catalogs/catalog.json" <<'EOF'
-{"models":[{"slug":"gpt-5.6-luna","multi_agent_version":"v1","unrelated":1},{"slug":"gpt-5.6-terra","multi_agent_version":"v1","unrelated":2}]}
-EOF
-cat > "$tmp/fresh-cache.json" <<'EOF'
-{"models":[{"slug":"gpt-5.6-luna","multi_agent_version":"v2"}]}
-EOF
-cp "$home/config.toml" "$tmp/config.relative"
-
-# Native fallback requires explicit approval, mutates only Luna, and warns on
-# stale catalog/cache overrides rather than silently refreshing or removing it.
-cp "$home/model-catalogs/catalog.json" "$tmp/catalog.before"
-CODEX_HOME="$home" bash "$root/scripts/iron-box-status.sh" > "$tmp/status.stale"
-contains 'native Luna override: STALE WARNING' "$tmp/status.stale"
-
-# Malformed and duplicate Luna catalog entries are rejected without mutation.
-printf '{not-json\n' > "$home/model-catalogs/catalog.json"
-cp "$home/model-catalogs/catalog.json" "$tmp/catalog.malformed.before"
-if CODEX_HOME="$home" bash "$root/scripts/apply-iron-box.sh" --apply --native-luna-v2 > "$tmp/catalog.malformed.out" 2>&1; then fail 'malformed catalog accepted'; fi
-same "$home/model-catalogs/catalog.json" "$tmp/catalog.malformed.before"
-contains 'malformed JSON' "$tmp/catalog.malformed.out"
-cat > "$home/model-catalogs/catalog.json" <<'EOF'
-{"models":[],"models":[]}
-EOF
-cp "$home/model-catalogs/catalog.json" "$tmp/catalog.duplicate-key.before"
-if CODEX_HOME="$home" bash "$root/scripts/apply-iron-box.sh" --apply --native-luna-v2 > "$tmp/catalog.duplicate-key.out" 2>&1; then fail 'duplicate JSON key accepted'; fi
-same "$home/model-catalogs/catalog.json" "$tmp/catalog.duplicate-key.before"
-contains 'duplicate JSON key' "$tmp/catalog.duplicate-key.out"
-cat > "$home/model-catalogs/catalog.json" <<'EOF'
-{"models":[{"slug":"gpt-5.6-luna","multi_agent_version":"v1"},{"slug":"gpt-5.6-luna","multi_agent_version":"v1"}]}
-EOF
-cp "$home/model-catalogs/catalog.json" "$tmp/catalog.duplicate.before"
-if CODEX_HOME="$home" bash "$root/scripts/apply-iron-box.sh" --apply --native-luna-v2 > "$tmp/catalog.duplicate.out" 2>&1; then fail 'duplicate catalog entry accepted'; fi
-same "$home/model-catalogs/catalog.json" "$tmp/catalog.duplicate.before"
-contains 'exactly one Luna' "$tmp/catalog.duplicate.out"
-cp "$tmp/catalog.before" "$home/model-catalogs/catalog.json"
-
-# A native V2 update without refresh never changes the existing cache.
-cat > "$home/models_cache.json" <<'EOF'
-{"models":[{"slug":"gpt-5.6-luna","multi_agent_version":"v1","keep":"old"}]}
-EOF
-cp "$home/models_cache.json" "$tmp/cache.before"
-CODEX_HOME="$home" bash "$root/scripts/apply-iron-box.sh" --apply --native-luna-v2 > "$tmp/luna.no-refresh"
-same "$home/models_cache.json" "$tmp/cache.before"
-# A quoted root model_catalog_json is valid TOML but intentionally rejected;
-# preflight must leave the catalog untouched before any native write.
-cp "$tmp/catalog.before" "$home/model-catalogs/catalog.json"
-printf '"model_catalog_json" = "model-catalogs/catalog.json"\n' > "$home/config.toml"
-cp "$home/model-catalogs/catalog.json" "$tmp/catalog.quoted.before"
-if CODEX_HOME="$home" bash "$root/scripts/apply-iron-box.sh" --apply --native-luna-v2 > "$tmp/config.quoted.out" 2>&1; then fail 'quoted native config accepted'; fi
-same "$home/model-catalogs/catalog.json" "$tmp/catalog.quoted.before"
-contains 'unsafe quoted key' "$tmp/config.quoted.out"
-cp "$tmp/config.relative" "$home/config.toml"
-cp "$tmp/catalog.before" "$home/model-catalogs/catalog.json"
-CODEX_HOME="$home" bash "$root/scripts/apply-iron-box.sh" --native-luna-v2 --copy-models-cache "$tmp/fresh-cache.json" > "$tmp/luna.dry"
-same "$home/model-catalogs/catalog.json" "$tmp/catalog.before"
-same "$home/models_cache.json" "$tmp/cache.before"
-CODEX_HOME="$home" bash "$root/scripts/apply-iron-box.sh" --apply --native-luna-v2 --copy-models-cache "$tmp/fresh-cache.json" > "$tmp/luna.apply"
-[[ -f "$home/model-catalogs/catalog.json.bak" ]] || fail 'catalog backup missing'
-[[ -f "$home/config.toml.bak" ]] || fail 'native config backup missing'
-[[ -f "$home/models_cache.json.bak" ]] || fail 'models_cache backup missing'
-same "$home/model-catalogs/catalog.json.bak" "$tmp/catalog.before"
-same "$home/config.toml.bak" "$tmp/config.relative"
-same "$home/models_cache.json.bak" "$tmp/cache.before"
-python3 - "$home/model-catalogs/catalog.json" <<'PY'
-import json, sys
-x = json.load(open(sys.argv[1]))
-models = {m["slug"]: m for m in x["models"]}
-assert models["gpt-5.6-luna"]["multi_agent_version"] == "v2"
-assert models["gpt-5.6-luna"]["unrelated"] == 1
-assert models["gpt-5.6-terra"]["multi_agent_version"] == "v1"
-assert models["gpt-5.6-terra"]["unrelated"] == 2
-PY
-CODEX_HOME="$home" bash "$root/scripts/iron-box-status.sh" > "$tmp/status.v2"
-contains 'native Luna V2: compatible' "$tmp/status.v2"
-contains 'native Luna override: clear' "$tmp/status.v2"
-
-# Native cache refresh also omits a backup when its destination did not exist.
-native_absent="$tmp/native-absent"
-mkdir -p "$native_absent/model-catalogs"
-cat > "$native_absent/config.toml" <<'EOF'
-model_catalog_json = "model-catalogs/catalog.json"
-EOF
-cat > "$native_absent/model-catalogs/catalog.json" <<'EOF'
-{"models":[{"slug":"gpt-5.6-luna","multi_agent_version":"v1"}]}
-EOF
-CODEX_HOME="$native_absent" bash "$root/scripts/apply-iron-box.sh" --apply --native-luna-v2 --copy-models-cache "$tmp/fresh-cache.json" > "$tmp/native-absent.apply"
-[[ ! -e "$native_absent/models_cache.json.bak" ]] || fail 'backup created for new models_cache target'
-if grep -Fq 'models_cache.json.bak' "$tmp/native-absent.apply"; then fail 'new cache target falsely reported backup'; fi
 
 # Codex role installation is consent-gated, idempotent, and refuses managed
 # drift unless --force is explicitly supplied.  Status remains read-only.
@@ -374,5 +276,28 @@ contains 'use --force' "$tmp/roles.later-conflict"
 [[ ! -e "$conflict_home/agents/luna-worker.toml" ]] || fail 'later conflict wrote earlier role'
 CODEX_HOME="$conflict_home" bash "$root/scripts/apply-iron-box.sh" --install-codex-roles > "$tmp/roles.later-dry" 2>&1 || true
 [[ ! -e "$conflict_home/agents/luna-worker.toml" ]] || fail 'conflict dry-run wrote earlier role'
+
+# Integration-style parser check against the installed Codex binary.  It uses
+# an isolated CODEX_HOME and `features list`: no model call, user config, or
+# network.  The command must actually load the generated configuration.
+if codex_bin="$(command -v codex 2>/dev/null)"; then
+  parser_home="$tmp/parser-home"
+  mkdir -p "$parser_home"
+  CODEX_HOME="$parser_home" bash "$root/scripts/apply-iron-box.sh" --apply --profile --install-codex-roles > "$tmp/parser-install"
+  if ! CODEX_HOME="$parser_home" "$codex_bin" features list > "$tmp/parser-check" 2>&1; then
+    cat "$tmp/parser-check" >&2
+    fail 'installed Codex rejected generated isolated config'
+  fi
+  malformed_home="$tmp/parser-malformed-home"
+  mkdir -p "$malformed_home"
+  printf 'model = [\n' > "$malformed_home/config.toml"
+  if CODEX_HOME="$malformed_home" "$codex_bin" features list > "$tmp/parser-malformed" 2>&1; then
+    fail 'Codex accepted malformed isolated config'
+  fi
+  contains 'TOML parse error' "$tmp/parser-malformed"
+  echo 'Codex config load check passed (isolated CODEX_HOME; no model call)'
+else
+  echo 'Codex parser check skipped (codex not on PATH)'
+fi
 
 echo 'Iron Box script tests passed'

@@ -406,113 +406,6 @@ def apply_profile(path: Path, *, dry_run: bool) -> None:
         print(f"portable profile: updated ({path}){suffix}")
 
 
-def catalog_path(home: Path, config: Path) -> Path | None:
-    if not config.exists():
-        return None
-    parsed = parse_toml(config)
-    raw = parsed.get("model_catalog_json")
-    if not isinstance(raw, str) or not raw:
-        return None
-    candidate = Path(raw).expanduser()
-    if not candidate.is_absolute():
-        candidate = home / candidate
-    return candidate
-
-
-def load_json(path: Path) -> Any:
-    regular_target(path, allow_missing=False)
-
-    def reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-        result: dict[str, Any] = {}
-        for key, value in pairs:
-            if key in result:
-                raise ValueError(f"duplicate JSON key: {key}")
-            result[key] = value
-        return result
-
-    try:
-        return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=reject_duplicate_keys)
-    except (OSError, json.JSONDecodeError, ValueError) as exc:
-        raise SystemExit(f"malformed JSON {path}: {exc}") from exc
-
-
-def luna_version(payload: Any) -> str | None:
-    if not isinstance(payload, dict) or not isinstance(payload.get("models"), list):
-        return None
-    versions = [m.get("multi_agent_version") for m in payload["models"] if isinstance(m, dict) and m.get("slug") == "gpt-5.6-luna"]
-    if len(versions) != 1:
-        return None
-    return versions[0] if isinstance(versions[0], str) else None
-
-
-def find_json_object(text: str, slug: str) -> tuple[int, int]:
-    matches = list(re.finditer(r'"slug"\s*:\s*"' + re.escape(slug) + r'"', text))
-    if len(matches) != 1:
-        raise SystemExit(f"catalog must contain exactly one {slug} model")
-    hit = matches[0]
-    start = text.rfind("{", 0, hit.start())
-    if start < 0:
-        raise SystemExit("cannot locate Luna catalog object")
-    depth = 0
-    quote = False
-    escaped = False
-    for index in range(start, len(text)):
-        char = text[index]
-        if quote:
-            if char == '"' and not escaped:
-                quote = False
-            escaped = char == "\\" and not escaped
-            if char != "\\":
-                escaped = False
-            continue
-        if char == '"':
-            quote = True
-        elif char == "{":
-            depth += 1
-        elif char == "}":
-            depth -= 1
-            if depth == 0:
-                return start, index + 1
-    raise SystemExit("unterminated Luna catalog object")
-
-
-def mutate_luna_catalog(path: Path, *, dry_run: bool) -> None:
-    text = read_text(path)
-    payload = load_json(path)
-    if luna_version(payload) != "v1":
-        raise SystemExit("native Luna fallback requires exactly one Luna entry with multi_agent_version=v1")
-    start, end = find_json_object(text, "gpt-5.6-luna")
-    object_text = text[start:end]
-    matches = list(re.finditer(r'("multi_agent_version"\s*:\s*)"v1"', object_text))
-    if len(matches) != 1:
-        raise SystemExit("Luna object must contain exactly one multi_agent_version=v1")
-    match = matches[0]
-    updated = text[: start + match.start(0)] + match.group(1) + '"v2"' + text[start + match.end(0) :]
-    if dry_run:
-        print(f"native Luna V2: would update only Luna multi_agent_version in {path}")
-    else:
-        had_existing = atomic_write(path, updated.encode("utf-8"))
-        suffix = f"; backup={path}.bak" if had_existing else ""
-        print(f"native Luna V2: updated only Luna multi_agent_version in {path}{suffix}")
-
-
-def copy_cache(home: Path, source: Path, *, dry_run: bool) -> None:
-    regular_target(source, allow_missing=False)
-    payload = load_json(source)
-    if luna_version(payload) != "v2":
-        raise SystemExit("fresh models_cache must contain Luna multi_agent_version=v2")
-    target = home / "models_cache.json"
-    if source.resolve() == target.resolve():
-        print(f"models_cache: already current ({target})")
-        return
-    if dry_run:
-        print(f"models_cache: would copy fresh cache {source} -> {target}")
-    else:
-        had_existing = atomic_write(target, source.read_bytes())
-        suffix = f"; backup={target}.bak" if had_existing else ""
-        print(f"models_cache: copied fresh cache to {target}{suffix}")
-
-
 def codex_role_paths(home: Path) -> list[tuple[str, Path, Path]]:
     """Return the packaged role and CODEX_HOME destination for each role."""
     destination_dir = home / "agents"
@@ -615,52 +508,6 @@ def codex_roles_status(home: Path) -> None:
         print(f"Codex role {name}: {state} ({target})")
 
 
-def set_catalog_config(config: Path, catalog: Path, *, dry_run: bool) -> None:
-    # This is intentionally separate from the portable profile: an absolute
-    # runtime path is only written by the explicit native fallback action.
-    text = read_text(config) if config.exists() else ""
-    parse_toml(config) if config.exists() else {}
-    validate_config_structure(text)
-    occurrences = config_key_occurrences(text)
-    key = ("model_catalog_json",)
-    if len(occurrences.get(key, [])) > 1:
-        raise SystemExit("duplicate target key in config: model_catalog_json")
-    rendered = toml_value(str(catalog))
-    if not text:
-        updated = f"model_catalog_json = {rendered}\n"
-    elif key in occurrences:
-        lines = text.splitlines(keepends=True)
-        for index, raw in enumerate(lines):
-            if index not in occurrences[key]:
-                continue
-            newline = line_eol(raw)
-            body = raw[:-len(newline)] if newline else raw
-            equals = body.find("=")
-            lines[index] = body[: equals + 1] + " " + rendered + newline
-        updated = "".join(lines)
-    else:
-        lines = text.splitlines(keepends=True)
-        first_table = len(lines)
-        for index, raw in enumerate(lines):
-            logical = strip_toml_comment(raw).strip()
-            if logical.startswith("["):
-                first_table = index
-                break
-        insertion = f"model_catalog_json = {rendered}\n"
-        if first_table > 0 and not lines[first_table - 1].endswith(("\n", "\r")):
-            insertion = "\n" + insertion
-        lines.insert(first_table, insertion)
-        updated = "".join(lines)
-    if updated == text:
-        print(f"model_catalog_json: unchanged ({config})")
-    elif dry_run:
-        print(f"model_catalog_json: would set to derived catalog ({config})")
-    else:
-        had_existing = atomic_write(config, updated.encode("utf-8"))
-        suffix = f"; backup={config}.bak" if had_existing else ""
-        print(f"model_catalog_json: set derived catalog ({config}){suffix}")
-
-
 def status() -> int:
     home = codex_home()
     config = home / "config.toml"
@@ -672,9 +519,9 @@ def status() -> int:
     if not config.exists():
         print(f"config: absent ({config})")
         print("catalog: not configured")
-        print("browser capability: unknown (config absent)")
-        print("computer-use capability: unknown (config absent)")
-        print("native Luna V2: unknown")
+        print("browser capability: not configured (not live-verified)")
+        print("computer-use capability: not configured (not live-verified)")
+        print("Luna compatibility: requires a live client probe")
         return 0
     try:
         parsed = parse_toml(config)
@@ -702,39 +549,27 @@ def status() -> int:
             enabled = enabled or bool(shell_set.get("BROWSER_USE_AVAILABLE_BACKENDS")) or "browser" in mcp_text
         else:
             enabled = enabled or str(shell_set.get("SKY_CUA_NATIVE_PIPE", "")) == "1" or "computer-use" in mcp_text
-        print(f"{capability} capability: {'available' if enabled else 'unavailable'}")
-    catalog = catalog_path(home, config)
+        print(f"{capability} capability: {'configured' if enabled else 'not configured'} (not live-verified)")
+    raw_catalog = parsed.get("model_catalog_json")
+    catalog = Path(raw_catalog).expanduser() if isinstance(raw_catalog, str) and raw_catalog else None
+    if catalog is not None and not catalog.is_absolute():
+        catalog = home / catalog
     if catalog is None:
         print("catalog: not configured")
-        print("native Luna V2: unknown (catalog not configured)")
+        print("Luna compatibility: requires a live client probe (catalog not configured)")
         return 0
     if not catalog.exists():
         print(f"catalog: missing ({catalog})")
-        print("native Luna V2: unknown (catalog missing)")
+        print("Luna compatibility: requires a live client probe (catalog missing)")
         return 0
     try:
-        payload = load_json(catalog)
-        version = luna_version(payload)
-    except SystemExit as exc:
-        print(f"catalog: malformed ({catalog}; {exc})")
-        print("native Luna V2: unknown")
+        catalog.read_text(encoding="utf-8")
+    except OSError as exc:
+        print(f"catalog: unreadable ({catalog}; {exc})")
+        print("Luna compatibility: requires a live client probe")
         return 0
     print(f"catalog: present ({catalog})")
-    print(f"native Luna V2: {'compatible' if version == 'v2' else 'incompatible' if version == 'v1' else 'unknown'}")
-    cache = home / "models_cache.json"
-    if cache.exists():
-        try:
-            cache_version = luna_version(load_json(cache))
-        except SystemExit:
-            cache_version = None
-        if version and cache_version and version != cache_version:
-            print(f"native Luna override: STALE WARNING (catalog={version}, models_cache={cache_version})")
-        elif version and cache_version is None:
-            print("native Luna override: STALE WARNING (models_cache malformed or has no Luna entry)")
-        else:
-            print("native Luna override: clear")
-    else:
-        print("native Luna override: STALE WARNING (models_cache missing)")
+    print("Luna compatibility: requires a live client probe")
     return 0
 
 
@@ -743,49 +578,23 @@ def apply_main(argv: list[str]) -> int:
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--write-global-agents", "--global-agents", action="store_true")
     parser.add_argument("--profile", "--apply-profile", "--portable-profile", action="store_true")
-    parser.add_argument("--native-luna-v2", "--native-luna-fallback", action="store_true")
     parser.add_argument("--install-codex-roles", "--codex-roles", action="store_true")
     parser.add_argument("--force", action="store_true", help="replace differing managed Codex role targets")
-    parser.add_argument("--copy-models-cache", "--refresh-models-cache", metavar="PATH", nargs="?", const="")
     args = parser.parse_args(argv)
-    if args.copy_models_cache and not args.native_luna_v2:
-        parser.error("--copy-models-cache requires --native-luna-v2")
     home = codex_home()
-    config = home / "config.toml"
     dry = not args.apply
     if args.force and not args.install_codex_roles:
         parser.error("--force requires --install-codex-roles")
-    if not (args.write_global_agents or args.profile or args.native_luna_v2 or args.install_codex_roles):
-        print("no Iron Box action selected; use --write-global-agents, --profile, --native-luna-v2, or --install-codex-roles")
+    if not (args.write_global_agents or args.profile or args.install_codex_roles):
+        print("no Iron Box action selected; use --write-global-agents, --profile, or --install-codex-roles")
         print("dry-run complete; no changes were made" if dry else "apply complete; no changes were requested")
         return 0
     if args.write_global_agents:
         update_agents(home / "AGENTS.md", dry_run=dry)
     if args.profile:
-        apply_profile(config, dry_run=dry)
+        apply_profile(home / "config.toml", dry_run=dry)
     if args.install_codex_roles:
         install_codex_roles(home, dry_run=dry, force=args.force)
-    if args.native_luna_v2:
-        catalog = catalog_path(home, config)
-        if catalog is None:
-            catalog = home / "model-catalogs" / "desktop-multi-agent.json"
-            print(f"native Luna V2: derived catalog path {catalog}")
-        source = None
-        if args.copy_models_cache is not None:
-            source = Path(args.copy_models_cache).expanduser() if args.copy_models_cache else home / "models_cache.json"
-        # Preflight every native target before the first write. A rejected
-        # config (for example an unsafe quoted key) must not leave a mutated
-        # catalog or refreshed cache behind.
-        if args.apply:
-            if source is not None:
-                copy_cache(home, source, dry_run=True)
-            mutate_luna_catalog(catalog, dry_run=True)
-            set_catalog_config(config, catalog, dry_run=True)
-        if source is not None:
-            copy_cache(home, source, dry_run=dry)
-        mutate_luna_catalog(catalog, dry_run=dry)
-        set_catalog_config(config, catalog, dry_run=dry)
-        print("native Luna fallback remains an explicit override; status reports stale mismatches")
     print("dry-run complete; no changes were made" if dry else "apply complete")
     return 0
 

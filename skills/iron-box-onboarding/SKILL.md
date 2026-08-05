@@ -72,12 +72,13 @@ first configuration or integration action:
    when the official documentation directs you to it.
 3. Record which requested options are available, unavailable, or unclear.
 
-Repeat steps 1 and 2 immediately before **every** configuration or integration
-action, including each install, update, login, write, or profile application.
-Never invent a path, flag, role, TOML key, endpoint, or capability from an old
-version. If current documentation cannot be checked, stop that action and
-offer guidance or skip it; do not guess. Do not bundle dependencies, and never
-install or update one silently.
+Cache this preflight for the current **client + version + platform + session**.
+Repeat it only when that tuple changes, before a privileged/destructive action,
+or when the documentation tells you the capability is version-sensitive.
+Never invent a path, flag, role, TOML key, endpoint, or capability. If current
+documentation cannot be checked, stop that action and offer guidance or skip
+it; do not guess. Do not bundle dependencies, and never install or update one
+silently.
 
 ## Fixed sequence
 
@@ -92,10 +93,10 @@ and recommendation, then offer the user these explicit choices:
 - **Skip:** choose this when the capability is unavailable, unsuitable, or
   declined.
 
-Re-check the preflight before taking any chosen action. Report what was found,
-what changed, and what was skipped. Do not request, print, store, or commit
-passwords, tokens, or API keys; use the provider's documented interactive
-authentication flow.
+Use the cached preflight for each chosen action unless it must be refreshed by
+the rule above. Report what was found, what changed, and what was skipped. Do
+not request, print, store, or commit passwords, tokens, or API keys; use the
+provider's documented interactive authentication flow.
 
 ### 1. Superpowers
 
@@ -231,7 +232,9 @@ and report each role's result. This offline status only proves that packaged
 files and destinations match; it does not prove that a running Codex exposes
 the roles. If installation succeeds, request a full Codex client restart so
 the new roles are loaded, then use the current documented live role-exposure
-probe and report its result before claiming the roles are usable. For
+probe and report its result before claiming the roles are usable. Do not add
+unverified `[agents.<role>]` blocks: current Codex versions that support this
+surface discover the installed role files directly. For
 **Guide me**, show the same root-resolution, confirmation, commands, and
 targets without executing them. If Codex is not detected or the current
 documentation does not expose this surface, say it is unavailable or unclear
@@ -246,9 +249,11 @@ After presenting the six steps, offer two clear modes:
    explicit consent for the exact action.
 2. **Apply portable recommended profile:** first display the complete proposed
    profile and its client-specific targets. With explicit consent, apply only
-   the documented, portable fields supported by the detected client; leave
-   unsupported fields untouched and do not install optional dependencies as a
-   side effect.
+   the documented governance baseline. Root model choice, reasoning budget,
+   memory policy, Desktop UX, browser controls, and remote-awake behavior stay
+   user-owned: guide the user through the documented setting one at a time
+   instead of copying an author's personal defaults. Leave unsupported fields
+   untouched and do not install optional dependencies as a side effect.
 
 For Codex, run the full six-step route and use only current Codex-supported
 skills, integrations, roles, TOML, or MultiAgent capabilities. For Copilot CLI,

@@ -1,5 +1,5 @@
 name = "terra_worker"
-description = "Terra High worker for bounded implementation that needs local judgment."
+description = "Terra worker for bounded implementation that needs local judgment."
 nickname_candidates = ["Selas", "Alar", "Manet", "Kilvin", "Doch" ]
 model = "gpt-5.6-terra"
 sandbox_mode = "workspace-write"

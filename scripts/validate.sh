@@ -2,7 +2,8 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
-command -v python3 >/dev/null 2>&1 || { echo "python3 is required for offline JSON/frontmatter checks" >&2; exit 127; }
+command -v python3 >/dev/null 2>&1 || { echo "Python 3.11+ is required for offline JSON/frontmatter checks" >&2; exit 127; }
+python3 -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else "Python 3.11+ is required (tomllib is used by this validator)")'
 
 python3 - "$root" <<'PY'
 import json
@@ -182,7 +183,7 @@ required_iron_box_identifiers = {
     ),
     root / "templates" / "iron-box.portable.toml": (
         "default_subagent_model = \"gpt-5.6-luna\"",
-        "default_subagent_reasoning_effort = \"high\"",
+        "default_subagent_reasoning_effort = \"medium\"",
     ),
     root / "scripts" / "iron-box-status.sh": ("read-only",),
     root / "scripts" / "apply-iron-box.sh": ("dry-run",),
@@ -198,23 +199,23 @@ print("required Iron Box identifiers present")
 
 codex_agents_dir = root / "assets" / "codex" / "agents"
 expected_codex_roles = {
-    "luna-worker.toml": ("luna_worker", "gpt-5.6-luna", "workspace-write"),
-    "terra-worker.toml": ("terra_worker", "gpt-5.6-terra", "workspace-write"),
-    "sol-advisor.toml": ("sol_advisor", "gpt-5.6-sol", "read-only"),
+    "luna-worker.toml": ("luna_worker", "gpt-5.6-luna", "medium", "workspace-write"),
+    "terra-worker.toml": ("terra_worker", "gpt-5.6-terra", "high", "workspace-write"),
+    "sol-advisor.toml": ("sol_advisor", "gpt-5.6-sol", "medium", "read-only"),
 }
 if not codex_agents_dir.is_dir():
     raise SystemExit("missing Codex role assets directory: assets/codex/agents")
-for filename, (name, model, sandbox_mode) in expected_codex_roles.items():
+for filename, (name, model, reasoning_effort, sandbox_mode) in expected_codex_roles.items():
     path = codex_agents_dir / filename
     if not path.is_file():
         raise SystemExit(f"missing required Codex role asset: {path.relative_to(root)}")
     with path.open("rb") as handle:
         profile = tomllib.load(handle)
-    actual = (profile.get("name"), profile.get("model"), profile.get("sandbox_mode"))
-    expected = (name, model, sandbox_mode)
+    actual = (profile.get("name"), profile.get("model"), profile.get("model_reasoning_effort"), profile.get("sandbox_mode"))
+    expected = (name, model, reasoning_effort, sandbox_mode)
     if actual != expected:
         raise SystemExit(
-            f"{path.relative_to(root)} must set name/model/sandbox_mode to {expected!r}, got {actual!r}"
+            f"{path.relative_to(root)} must set name/model/model_reasoning_effort/sandbox_mode to {expected!r}, got {actual!r}"
         )
     print(f"valid Codex role asset: {path.relative_to(root)}")
 PY

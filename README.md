@@ -76,3 +76,20 @@ workflow scripts. Run these from the repository root after installation:
 bash scripts/validate.sh
 bash tests/test-iron-box-scripts.sh
 ```
+
+## Requirements
+
+- Git and Bash;
+- Python 3.11 or newer for the offline validator and installer; and
+- a currently supported Codex client or GitHub Copilot CLI installation.
+
+For Copilot CLI, the documented marketplace install form is:
+
+```bash
+copilot plugin install LookAsPelc/governed-workflow
+```
+
+For Codex, use the current plugin/marketplace flow exposed by the installed
+client. Once Iron Box is installed, restart the client and invoke
+`$iron-box-onboarding`; that skill performs one capability preflight for the
+client/version/platform and then leads the selected setup steps.

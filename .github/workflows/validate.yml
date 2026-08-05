@@ -1,0 +1,22 @@
+name: Validate Iron Box
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate package
+        run: bash scripts/validate.sh
+      - name: Test installer
+        run: bash tests/test-iron-box-scripts.sh
