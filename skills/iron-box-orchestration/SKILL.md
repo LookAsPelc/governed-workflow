@@ -1,86 +1,89 @@
 ---
 name: iron-box-orchestration
-description: Use for Codex-first, evidence-driven delegation with a safe Copilot adapter and explicit user review gates.
+description: Subagent-driven worker routing with explicit escalation and review gates.
 ---
 
-# Iron-box orchestration
+# Iron Box orchestration
 
-This is a Codex-first workflow for bounded parallel work. It is a workflow
-contract, not a claim that every client has the same tools or role model.
+This is a workflow contract for delegated work.
+It defines ownership, routing, escalation, and evidence without assuming a particular execution environment.
 
 ## Root ownership and development gate
 
-The root agent owns the requirement, scope, integration, verification, and
-all user communication. Before development it records a goal and a TODO list;
-the TODO names acceptance criteria and the evidence needed to close them. The
-root does not delegate an unresolved product decision or hand off final
-integration.
+The root agent owns the requirement, scope, integration, verification, and all user communication. 
+Before development it records a goal and a TODO list; the TODO names acceptance criteria and the evidence needed to close them. 
+If the product intent is unknown, the root agent resolves it with the user before assigning implementation, or discusses it with a more powerful subagent in an advisory role.
 
-Start by reading the current client's documentation and discovering its
-available capabilities (including thread/background delegation, health probes,
-and result collection). Record what was actually discovered. Do not infer a
-capability from a role name, an old config file, or a prompt example.
+## Model-routing heuristic
 
-## Probe before fan-out
+These are recommended routing heuristics:
 
-Before launching parallel work, run one small, real health probe through the
-preferred delegation path. The probe must do useful, bounded work (for
-example, inspect one named file and return a checksum or a finding), and the
-root must verify the returned result and scope. A timeout, missing result,
-wrong file, or unsupported capability is a failed probe; stop fan-out and
-report the onboarding/status repair route.
+| Route | Best fit | Relative cost guidance |
+| --- | --- | --- |
+| gpt-5.6-Luna Medium/High | Bounded, mechanical, or research work | Because 25x cheaper than Sol and 10x cheaper than Terra |
+| gpt-5.6-Luna Xhigh/Max | Difficult but still bounded work | May be preferred before Sol Low and Terra Medium |
+| gpt-5.6-Terra | Escalated implementation and local judgment | Use when Luna cannot safely decide implementation details |
+| gpt-5.6-Sol Low/Medium/High | Architecture, risk, and final-evidence review | Use for the highest-leverage judgment and review |
 
-Prefer the client's native “delegate new thread” or background-thread
-mechanism for worthwhile independent work. Use native subagents only as a
-fallback when the client explicitly documents that Luna is V2-compatible and
-the capability discovery and health probe succeeded. If Luna V2 compatibility
-is not established, do not pretend native spawning works: route the user to
-onboarding/status repair or continue serially with root-owned work.
+For Luna's route, prefer a new thread over spawning descendant subagents.
+Then control that thread.
+Keep any descendant work within the root's explicit scope and escalation decision.
 
-The spawn narration is part of the evidence. For every worker, state the task
-name, model, reasoning level, and a short purpose before spawning it. Reasoning
-calibration is deliberate: Luna low for mechanical/research work, medium for
-ordinary implementation, and high for integration; max is reserved for
-difficult debugging. Sol is normally medium, not high by default. Never
-interrupt a running agent merely to change its reasoning level.
+## Worker assignment and evidence contract
 
-## Worker contract
-
-Each worker receives all of the following in its task message:
+Before every assignment, announce the task name, role, model, reasoning level,
+and a short purpose. Each worker receives all of the following:
 
 - a distinct, bounded scope and exact file ownership;
 - acceptance criteria and the expected verification command or observation;
-- an explicit statement that other agents are editing the shared workspace;
-- escalation conditions for ambiguity, capability failure, destructive action,
-  or an acceptance criterion it cannot prove; and
-- a prohibition on spawning descendants.
+- an explicit statement that other agents edit the shared workspace;
+- escalation conditions for ambiguity, execution failure, destructive action, or an acceptance criterion it cannot prove.
 
-Workers preserve unrelated edits and do not widen scope. They report changed
-files, exact commands and results, and remaining uncertainty. The root reviews
-the report and the diff before integrating it.
+Workers preserve unrelated edits and do not widen scope.
+Every worker report lists changed files, exact commands and results, observed behavior, and remaining uncertainty.
+The root reviews the report and the diff before integrating it.
 
-## Sol review and evidence
+## Context packet
 
-Sol is optional and read-only. Request a Sol review for architecture, public
-interfaces, authentication/security, persistent state, destructive operations,
-or a final evidence gate. Sol advises and does not implement. A review is not
-evidence of a passing test: distinguish static inspection, collected output,
-and a live runtime probe. If a required external dependency (network,
-credentials, database, or authorization) is unavailable, record the exact
-limitation rather than claiming completion.
+The root sends task-specific context rather than the whole history by default:
+objective, settled decisions, owned files or interfaces, acceptance and verification checks, relevant evidence, and known risks.
+Forward a bounded recent-turn slice only when it is materially needed; never dump unrelated history or secrets.
+A worker escalates when this packet is insufficient to prove or safely complete the assignment.
 
-After workers return, the root integrates the smallest change, runs the
-acceptance checks, and preserves the worker evidence. Before delivery, show
-the user the result and unresolved uncertainty for review. Only after that
-review does the root perform final cleanup or claim the task complete.
+## Escalation path and Sol verdict
 
-## Copilot adapter boundary
+Each worker includes an explicit escalation report, even when no escalation is
+needed:
 
-The accompanying `iron-box-reviewer.agent.md` is a Copilot custom-agent
-adapter. It carries the same safety and review contract but cannot install
-Codex TOML roles, claim Sol/Luna/Terra runtime profiles, or claim V2
-compatibility. The actual root is invoked through this orchestration skill; it
-is not exposed as a Copilot custom agent. In Copilot, delegation is guidance
-unless the current client documents a matching feature; otherwise use a single
-bounded conversation and say so. Keep the review adapter frontmatter intact
-when copying it into a supported Copilot agents directory.
+```text
+status: PASS | ESCALATE | BLOCKED
+scope: <files and bounded responsibility>
+evidence: <commands, observations, and outputs>
+uncertainty: <remaining risk or none>
+recommendation: <next route or root action>
+```
+
+Use this routing and review path:
+
+```mermaid
+flowchart TD
+    W[Worker report] --> R{Root triage}
+    R -->|mechanical or research| L[Luna]
+    R -->|implementation or local judgment| T[Terra]
+    R -->|architecture, risk, or final evidence| S[Sol medium gate]
+    L -->|worker report or escalation| R
+    T -->|worker report or escalation| R
+    S -->|PASS| I[Root integrates]
+    S -->|REVISE| R
+    S -->|BLOCKED| U[Root takes user decision]
+```
+
+Solreturns exactly `PASS`, `REVISE`, or `BLOCKED`, with
+evidence and rationale. `PASS` means evidence supports every acceptance
+criterion; `REVISE` means a deficiency is correctable within scope; `BLOCKED`
+means a required decision, access, or proof is missing. The root owns the
+revision loop and the user decision when the gate is blocked.
+
+The root distinguishes static inspection, collected command output, and live runtime evidence.
+An unavailable external dependency (network, credentials, database, or authorization) is recorded as an exact limitation, never as proof of completion.
+Before delivery, the root presents the result and any unresolved uncertainty for user review; only then does it perform final cleanup or claim completion.

@@ -2,8 +2,10 @@
 # portable policy; root model, memories, Desktop UX, and request-input
 # preferences remain user-owned.
 
-[agents]
+
+[features.multi_agent_v2]
 enabled = true
-max_threads = 4
-default_subagent_model = "gpt-5.6-luna"
-default_subagent_reasoning_effort = "medium"
+hide_spawn_agent_metadata = false
+expose_spawn_agent_model_overrides = true
+max_concurrent_threads_per_session = 3
+tool_namespace = "agents"

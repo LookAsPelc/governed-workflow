@@ -4,7 +4,9 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 command -v python3 >/dev/null 2>&1 || { echo "Python 3.11+ is required for offline JSON/frontmatter checks" >&2; exit 127; }
 python3 -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else "Python 3.11+ is required (tomllib is used by this validator)")'
-python3 "$root/scripts/iron_box.py" validate-package
+# CI validates development fixtures too; the production command defaults to
+# runtime-only completeness so an installed package need not ship test files.
+python3 "$root/scripts/iron_box.py" validate-package --development
 
 python3 - "$root" <<'PY'
 import json
@@ -148,23 +150,12 @@ else:
 
 portable_profile = (root / "templates" / "iron-box.portable.toml").read_text(encoding="utf-8")
 portable_data = tomllib.loads(portable_profile)
-if set(portable_data) != {"agents"} or set(portable_data["agents"]) != {
-    "enabled",
-    "max_threads",
-    "default_subagent_model",
-    "default_subagent_reasoning_effort",
-}:
-    raise SystemExit(
-        "portable profile must contain only the explicit [agents] governance allowlist"
-    )
-if portable_data["agents"] != {
-    "enabled": True,
-    "max_threads": 4,
-    "default_subagent_model": "gpt-5.6-luna",
-    "default_subagent_reasoning_effort": "medium",
-}:
-    raise SystemExit("portable profile has unexpected agent governance values")
-print("portable profile has explicit agents-only governance allowlist")
+# The portable profile is a generic Multi-Agent V2 fragment.  Keep parsing it
+# here for syntax validation, but do not impose the Desktop profile's settings
+# (or an agents-only shape) on this intentionally smaller portable fragment.
+if not isinstance(portable_data, dict):
+    raise SystemExit("portable profile must contain a TOML table")
+print("valid portable Iron Box TOML profile")
 forbidden_profile_terms = re.compile(
     r"sandbox|approval|mcp|credential|token|project[ _-]?trust|(?:^|[= ])/(?:[^/\n]|$)|\\\\",
     re.IGNORECASE,
@@ -172,6 +163,96 @@ forbidden_profile_terms = re.compile(
 if forbidden_profile_terms.search(portable_profile):
     raise SystemExit("portable Iron Box profile contains a forbidden security, path, or trust setting")
 print("portable profile excludes security, path, and trust settings")
+
+desktop_profile_path = root / "templates" / "codex-desktop.recommended.toml"
+with desktop_profile_path.open("rb") as handle:
+    desktop_data = tomllib.load(handle)
+expected_desktop = {
+    "model": "gpt-5.6-terra",
+    "approvals_reviewer": "auto_review",
+    "features": {
+        "memories": True,
+        "default_mode_request_user_input": True,
+        "fast_mode": False,
+        "js_repl": False,
+        "multi_agent_v2": {
+            "enabled": True,
+            "hide_spawn_agent_metadata": False,
+            "expose_spawn_agent_model_overrides": True,
+            "max_concurrent_threads_per_session": 4,
+            "tool_namespace": "agents",
+        },
+    },
+    "memories": {"generate_memories": True, "use_memories": True},
+    "agents": {
+        "enabled": True,
+        "max_depth": 2,
+        "default_subagent_model": "gpt-5.6-luna",
+        "default_subagent_reasoning_effort": "high",
+    },
+    "sandbox_workspace_write": {"network_access": True},
+    "desktop": {
+        "followUpQueueMode": "steer",
+        "conversationDetailMode": "STEPS_COMMANDS",
+        "ambient-suggestions-enabled": True,
+        "runCodexInWindowsSubsystemForLinux": True,
+        "integratedTerminalShell": "wsl",
+        "show-context-window-usage": True,
+        "defaultTerminalLocation": "right",
+        "usePointerCursors": True,
+        "hotkey-window-projectless-default-enabled": True,
+        "keepRemoteControlAwakeWhilePluggedIn": True,
+        "selected-avatar-id": "custom:jax",
+        "avatar-overlay-mascot-width-px": 224,
+        "appearanceLightCodeThemeId": "everforest",
+        "appearanceDarkCodeThemeId": "ayu",
+        "appearanceTheme": "system",
+        "enabled-reasoning-efforts": ["low", "medium", "high", "xhigh", "ultra", "max"],
+    },
+}
+
+
+def assert_expected_values(actual, expected, path=""):
+    unexpected = set(actual) - set(expected)
+    if unexpected:
+        names = ", ".join(sorted(unexpected))
+        prefix = path or "Desktop profile"
+        raise SystemExit(f"{prefix} contains unexpected setting(s): {names}")
+    for key, expected_value in expected.items():
+        key_path = f"{path}.{key}" if path else key
+        if key not in actual:
+            raise SystemExit(f"Desktop profile is missing {key_path!r}")
+        actual_value = actual[key]
+        if isinstance(expected_value, dict):
+            if not isinstance(actual_value, dict):
+                raise SystemExit(f"Desktop profile {key_path!r} must be a TOML table")
+            assert_expected_values(actual_value, expected_value, key_path)
+        elif actual_value != expected_value:
+            raise SystemExit(
+                f"Desktop profile {key_path!r} must be {expected_value!r}, got {actual_value!r}"
+            )
+
+
+assert_expected_values(desktop_data, expected_desktop)
+print("Codex Desktop recommended profile has the expected TOML contract")
+
+# The detailed Desktop-choice protocol lives in the onboarding reference so the
+# injected SKILL stays below Codex's size limit.  Keep its safety boundaries
+# executable rather than relying on prose review alone.
+onboarding_text = (root / "skills" / "iron-box-onboarding" / "SKILL.md").read_text(encoding="utf-8")
+setup_protocol = (root / "skills" / "iron-box-onboarding" / "references" / "setup-protocol.md").read_text(encoding="utf-8")
+setup_contract = onboarding_text + "\n" + setup_protocol
+for pattern, message in (
+    (r"compatible\s+Codex\s+Desktop", "onboarding must gate the preset to compatible Codex Desktop"),
+    (r"current\s+client/version.*document", "onboarding must verify current client/version documentation"),
+    (r"accept,\s*decline,\s*or\s*customize\s+each\s+group", "onboarding must offer per-group choice"),
+    (r"consent\s+before\s+writing", "onboarding must require consent before each accepted group write"),
+    (r"never\s+use\s+a\s+shell\s+workaround", "onboarding must prohibit shell workarounds"),
+    (r"Jax.*installed\s+and\s+visible", "onboarding must defer Jax selection until installed and visible"),
+):
+    if not re.search(pattern, setup_contract, re.IGNORECASE | re.DOTALL):
+        raise SystemExit(message)
+print("onboarding Desktop-preset consent and Jax gating contract present")
 
 # Project-owned prose must use the corrected public identity. The historical
 # Sol's upstream identifier is explicitly allowed by the negative lookbehind.
@@ -197,12 +278,10 @@ required_iron_box_identifiers = {
         "iron-box:start",
         "iron-box:end",
         "root agent is the orchestrator",
-        "Never interrupt a running worker merely to change its reasoning level",
-        "Sol is normally medium",
     ),
     root / "templates" / "iron-box.portable.toml": (
-        "default_subagent_model = \"gpt-5.6-luna\"",
-        "default_subagent_reasoning_effort = \"medium\"",
+        "[features.multi_agent_v2]",
+        "tool_namespace = \"agents\"",
     ),
     root / "scripts" / "iron-box-status.sh": ("read-only",),
     root / "scripts" / "apply-iron-box.sh": ("dry-run",),
@@ -215,6 +294,101 @@ for path, identifiers in required_iron_box_identifiers.items():
             f"{path.relative_to(root)} is missing required Iron Box identifiers: {', '.join(missing)}"
         )
 print("required Iron Box identifiers present")
+
+# The orchestration skill is intentionally validated by contract-level
+# identifiers rather than exact prose, so wording can evolve without making
+# this offline check brittle.
+orchestration_skill = root / "skills" / "iron-box-orchestration" / "SKILL.md"
+orchestration_text = orchestration_skill.read_text(encoding="utf-8")
+orchestration_lines = orchestration_text.splitlines()
+orchestration_close = orchestration_lines[1:].index("---") + 1
+orchestration_body = "\n".join(orchestration_lines[orchestration_close + 1 :])
+if not all(
+    re.search(pattern, orchestration_body, re.IGNORECASE | re.DOTALL)
+    for pattern in (r"\bluna\b", r"new[- ]thread|delegate.{0,40}thread")
+):
+    raise SystemExit(
+        "orchestration skill must define the Luna new-thread rule"
+    )
+for identifier in ("25x", "10x", "Max"):
+    if identifier.lower() not in orchestration_body.lower():
+        raise SystemExit(
+            f"orchestration skill is missing model-routing cost identifier {identifier!r}"
+        )
+if not re.search(r"sol.{0,40}low", orchestration_body, re.IGNORECASE | re.DOTALL):
+    raise SystemExit("orchestration skill is missing the Sol Low routing identifier")
+
+# Keep these checks semantic and text-oriented: the contract may be rewritten,
+# but it must retain the routing decisions and evidence obligations below.
+def require_orchestration(pattern: str, message: str) -> None:
+    if not re.search(pattern, orchestration_body, re.IGNORECASE | re.DOTALL):
+        raise SystemExit(message)
+
+
+require_orchestration(
+    r"luna.{0,120}(?:max|xhigh).{0,180}(?:prefer|priority).{0,180}(?:before|ahead|prior).{0,180}sol\s+low",
+    "orchestration skill must allow Luna Max preference before Sol Low",
+)
+require_orchestration(
+    r"luna\s+(?:medium\s*\+|medium(?:/|\s+or\s+)high)|minimum\s+luna\s+medium",
+    "orchestration skill must require Luna Medium or higher",
+)
+if re.search(r"luna\s+low", orchestration_body, re.IGNORECASE):
+    raise SystemExit("orchestration skill must not route work to Luna Low")
+require_orchestration(
+    r"root.{0,100}(?:owns?|orchestrat|triage|scope)",
+    "orchestration skill must establish root ownership or triage",
+)
+require_orchestration(
+    r"(?:worker\s+report|worker.{0,30}escalat).{0,160}root",
+    "orchestration skill must route worker reports or escalations through root",
+)
+# The diagram is the stable proof that Luna/Terra return to Root triage rather
+# than acquiring direct worker-to-worker escalation authority.
+require_orchestration(
+    r"W\[Worker\s+report\].{0,80}R\{Root\s+triage\}",
+    "orchestration skill must show worker reports entering Root triage",
+)
+for worker in ("L", "T"):
+    require_orchestration(
+        rf"\b{worker}(?:\[[^\]]+\])?\s*-->\s*[^\n]*\bR\b",
+        f"orchestration skill must route {worker} reports back to Root",
+    )
+
+for identifier, pattern in {
+    "context packet": r"context\s+packet",
+    "objective": r"\bobjective\b",
+    "settled decisions": r"settled\s+decisions?",
+    "owned files/interfaces": r"owned\s+files?(?:\s+or\s+interfaces)?|owned\s+interfaces?",
+    "acceptance and verification": r"acceptance.{0,40}verification",
+    "relevant evidence": r"relevant\s+evidence",
+    "known risks": r"known\s+risks?",
+}.items():
+    require_orchestration(
+        pattern,
+        f"orchestration skill context packet is missing {identifier}",
+    )
+
+require_orchestration(
+    r"\bPASS\b.{0,220}(?:evidence.{0,140}every.{0,80}criterion|every.{0,80}criterion.{0,140}evidence)",
+    "orchestration skill must define PASS as evidence for every criterion",
+)
+require_orchestration(
+    r"\bREVISE\b.{0,180}(?:(?:correctable|correct)\s+deficien|deficien.{0,100}(?:correctable|correct))",
+    "orchestration skill must define REVISE as a correctable deficiency",
+)
+require_orchestration(
+    r"\bBLOCKED\b.{0,220}(?:missing.{0,120}(?:decision|access|proof)|(?:decision|access|proof).{0,120}missing)",
+    "orchestration skill must define BLOCKED as missing decision, access, or proof",
+)
+client_terms = re.compile(r"\b(?:codex|copilot|v1|v2)\b", re.IGNORECASE)
+match = client_terms.search(orchestration_text)
+if match:
+    raise SystemExit(
+        "orchestration skill contains prohibited client-specific term "
+        f"{match.group(0)!r}"
+    )
+print("valid orchestration skill portability, routing, escalation, and client-neutrality contracts")
 
 codex_agents_dir = root / "assets" / "codex" / "agents"
 expected_codex_roles = {

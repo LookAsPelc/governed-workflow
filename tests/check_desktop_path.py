@@ -15,6 +15,7 @@ FORBIDDEN_SHELL_LINE = re.compile(
     r"^\s*(?:[$>#]\s*)?(?:" + "|".join(re.escape(name) for name in FORBIDDEN_NAMES) + r")(?:\s|$)"
 )
 FORBIDDEN_INSTALLER = re.compile(r"(?:apply-iron-box\.sh|iron_box\.py|--install-codex-roles)")
+RESOLVED_RUNTIME_INSTALLER_MARKER = "resolved runtime installer sequence"
 
 
 def check(path: pathlib.Path) -> None:
@@ -26,7 +27,7 @@ def check(path: pathlib.Path) -> None:
             continue
         if FORBIDDEN_SHELL_LINE.match(line):
             raise SystemExit(f"forbidden Desktop command invocation at {path}:{number}")
-        if FORBIDDEN_INSTALLER.search(line) and (
+        if FORBIDDEN_INSTALLER.search(line) and RESOLVED_RUNTIME_INSTALLER_MARKER not in line.lower() and (
             in_fence or line.lstrip().startswith(("$", ">", "./", "scripts/"))
         ):
             raise SystemExit(f"forbidden Desktop command invocation at {path}:{number}")

@@ -1,6 +1,6 @@
 <!-- iron-box:start -->
->Programuj a mysli anglicky.
-Pouze s developerem komunikuj v češtině.
+>Code and think in English.
+Communicate in Czech only with the developer.
 
 # Development phases
 
@@ -13,21 +13,13 @@ Pouze s developerem komunikuj v češtině.
 3. Hand off: cleanup, full tests, static checks, linting, and changelog as appropriate.
 
 # Skills
-- Superpawers jsou super skilly, ale není to zákon - používej je rozumně.
-- TDD je vhodný pro bug fixing, ne pro vývoj nových features.
-- Workflow stav hlavně okolo 'sol-governed-workers'.
-- Vysvětluj věci graficky pomocí Mermaid.
-
-# Iron Box workflow
-
-- Keep the root agent responsible for requirements, integration, verification, and communication.
-- Calibrate Luna deliberately: low for mechanical/research work, medium for ordinary implementation, and high for integration or difficult debugging.
-- Sol is normally medium; reserve higher reasoning for an explicit architecture, security, or final-evidence review.
-- Never interrupt a running worker merely to change its reasoning level.
-- Keep ownership clear, preserve unrelated changes, and distinguish collected output from proven runtime behavior.
+- Superpowers are great skills, but they are not law—use them judiciously.
+- TDD is suitable for bug fixing, not for developing new features.
+- Route governed multi-agent work primarily through `$iron-box-orchestration` or `$subagente-Driven Development`.
+- Explain things graphically using Mermaid.
 
 Base thread
-├── Luna worker — průzkum a mechanické úlohy (preferovaný)
-├── Terra executor — těžší práce
-└── Sol consultant — architektura, těžké problémy a kritické review (optional)
+├── Luna worker — research and mechanical tasks in a new thread (preferred)
+├── Terra executor — more difficult work
+└── Sol consultant — architecture, difficult problems, and critical review (optional)
 <!-- iron-box:end -->

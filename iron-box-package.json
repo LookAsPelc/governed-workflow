@@ -11,18 +11,22 @@
     "agents/iron-box-reviewer.agent.md",
     "skills/iron-box-onboarding/SKILL.md",
     "skills/iron-box-onboarding/agents/openai.yaml",
+    "skills/iron-box-onboarding/references/integrity-gate.md",
+    "skills/iron-box-onboarding/references/jax-lore.md",
+    "skills/iron-box-onboarding/references/setup-protocol.md",
     "skills/iron-box-orchestration/SKILL.md",
     "templates/AGENTS.global.recommended.md",
     "templates/iron-box.portable.toml",
+    "templates/codex-desktop.recommended.toml",
     "assets/app-icon.png",
     "assets/codex/agents/luna-worker.toml",
     "assets/codex/agents/terra-worker.toml",
-    "assets/codex/agents/sol-advisor.toml"
-  ],
-  "developmentRequired": [
+    "assets/codex/agents/sol-advisor.toml",
     "scripts/iron_box.py",
     "scripts/apply-iron-box.sh",
-    "scripts/iron-box-status.sh",
+    "scripts/iron-box-status.sh"
+  ],
+  "developmentRequired": [
     "scripts/validate.sh",
     "tests/test-iron-box-scripts.sh"
   ],

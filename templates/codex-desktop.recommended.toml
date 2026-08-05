@@ -1,0 +1,50 @@
+# Recommended Codex Desktop profile for the Iron Box workflow.
+# Apply this as a reviewed user-owned profile; unrelated configuration should
+# remain intact.
+
+model = "gpt-5.6-terra"
+approvals_reviewer = "auto_review"
+
+[features]
+memories = true
+default_mode_request_user_input = true
+fast_mode = false
+js_repl = false
+
+[features.multi_agent_v2]
+enabled = true
+hide_spawn_agent_metadata = false
+expose_spawn_agent_model_overrides = true
+max_concurrent_threads_per_session = 4
+tool_namespace = "agents"
+
+[agents]
+enabled = true
+max_depth = 2
+default_subagent_model = "gpt-5.6-luna"
+default_subagent_reasoning_effort = "high"
+
+[memories]
+generate_memories = true
+use_memories = true
+
+[sandbox_workspace_write]
+network_access = true
+
+[desktop]
+followUpQueueMode = "steer"
+conversationDetailMode = "STEPS_COMMANDS"
+ambient-suggestions-enabled = true
+runCodexInWindowsSubsystemForLinux = true
+integratedTerminalShell = "wsl"
+show-context-window-usage = true
+defaultTerminalLocation = "right"
+usePointerCursors = true
+hotkey-window-projectless-default-enabled = true
+keepRemoteControlAwakeWhilePluggedIn = true
+selected-avatar-id = "custom:jax"
+avatar-overlay-mascot-width-px = 224
+appearanceLightCodeThemeId = "everforest"
+appearanceDarkCodeThemeId = "ayu"
+appearanceTheme = "system"
+enabled-reasoning-efforts = ["low", "medium", "high", "xhigh", "ultra", "max"]

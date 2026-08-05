@@ -126,14 +126,13 @@ if CODEX_HOME="$home" bash "$root/scripts/apply-iron-box.sh" --apply --profile >
 same "$home/config.toml" "$tmp/duplicate.before"
 contains 'malformed TOML' "$tmp/duplicate.out"
 
-# Quoted root keys and target array/nested tables are unsafe for the
+# Quoted root keys and target array tables are unsafe for the
 # line-preserving updater and must be rejected before any write.
 for unsafe in \
   $'"model" = "one"\n' \
   $'["features"]\nmemories = false\n' \
   $'features = { memories = false }\n' \
-  $'[[agents]]\nenabled = true\n' \
-  $'[agents.nested]\nenabled = true\n'; do
+  $'[[agents]]\nenabled = true\n'; do
   printf '%s' "$unsafe" > "$home/config.toml"
   cp "$home/config.toml" "$tmp/unsafe.before"
   if CODEX_HOME="$home" bash "$root/scripts/apply-iron-box.sh" --apply --profile > "$tmp/unsafe.out" 2>&1; then
@@ -142,6 +141,29 @@ for unsafe in \
   same "$home/config.toml" "$tmp/unsafe.before"
   contains 'unsafe' "$tmp/unsafe.out"
 done
+
+# Existing standalone-role tables are accepted and preserved while the
+# portable [agents] governance keys are applied.
+cat > "$home/config.toml" <<'EOF'
+[agents.luna_worker]
+config_file = "user-owned.toml"
+description = "keep this registration"
+custom = "preserve"
+EOF
+CODEX_HOME="$home" bash "$root/scripts/apply-iron-box.sh" --apply --profile > "$tmp/nested-agents.apply"
+python3 - "$home/config.toml" <<'PY'
+import sys
+import tomllib
+
+with open(sys.argv[1], "rb") as handle:
+    config = tomllib.load(handle)
+assert config["agents"]["luna_worker"]["config_file"] == "user-owned.toml"
+assert config["agents"]["luna_worker"]["custom"] == "preserve"
+assert config["features"]["multi_agent_v2"]["enabled"] is True
+assert config["features"]["multi_agent_v2"]["tool_namespace"] == "agents"
+PY
+contains 'config_file = "user-owned.toml"' "$home/config.toml"
+contains 'custom = "preserve"' "$home/config.toml"
 
 
 # Codex role installation is consent-gated, idempotent, and refuses managed
@@ -156,24 +178,17 @@ for role in luna-worker terra-worker sol-advisor; do
   same "$root/assets/codex/agents/$role.toml" "$roles_home/agents/$role.toml"
   [[ "$(stat -c '%a' "$roles_home/agents/$role.toml")" == 644 ]] || fail "unexpected permissions for $role"
 done
-contains '[agents.luna_worker]' "$roles_home/config.toml"
-contains 'config_file = "agents/luna-worker.toml"' "$roles_home/config.toml"
-contains '[agents.terra_worker]' "$roles_home/config.toml"
-contains '[agents.sol_advisor]' "$roles_home/config.toml"
-python3 - "$roles_home/config.toml" <<'PY'
-import sys
-import tomllib
+[[ ! -e "$roles_home/config.toml" ]] || fail 'role install created config registrations'
+cat > "$roles_home/config.toml" <<'EOF'
+model = "user-model"
 
-with open(sys.argv[1], "rb") as handle:
-    config = tomllib.load(handle)
-agents = config["agents"]
-assert agents["luna_worker"]["config_file"] == "agents/luna-worker.toml"
-assert agents["terra_worker"]["config_file"] == "agents/terra-worker.toml"
-assert agents["sol_advisor"]["config_file"] == "agents/sol-advisor.toml"
-for role in ("luna_worker", "terra_worker", "sol_advisor"):
-    assert agents[role]["description"]
-PY
+[agents.luna_worker]
+config_file = "user-owned.toml"
+description = "keep this registration"
+EOF
+cp "$roles_home/config.toml" "$tmp/roles.config.before"
 CODEX_HOME="$roles_home" bash "$root/scripts/apply-iron-box.sh" --apply --install-codex-roles > "$tmp/roles.reapply"
+same "$roles_home/config.toml" "$tmp/roles.config.before"
 contains 'unchanged' "$tmp/roles.reapply"
 printf 'drift\n' > "$roles_home/agents/luna-worker.toml"
 cp "$roles_home/agents/luna-worker.toml" "$tmp/role.drift.before"
@@ -188,6 +203,7 @@ CODEX_HOME="$roles_home" bash "$root/scripts/iron-box-status.sh" > "$tmp/roles.s
 contains 'Codex role luna-worker: matching' "$tmp/roles.status"
 contains 'Codex role terra-worker: matching' "$tmp/roles.status"
 contains 'Codex role sol-advisor: matching' "$tmp/roles.status"
+contains 'legacy registration absent (optional' "$tmp/roles.status"
 
 # Status distinguishes missing and differing targets without changing them.
 status_home="$tmp/status-roles-home"
@@ -281,8 +297,8 @@ for path, data in before.items():
     assert path.read_bytes() == data, f"transaction failed to restore {path}"
 PY
 
-# A failure while registering the roles rolls back both copied files and the
-# config/backup bytes written earlier in the same transaction.
+# Existing legacy registrations are never treated as conflicts and remain
+# byte-for-byte unchanged during role installation.
 python3 - "$root" "$tmp/registration-failure-home" <<'PY'
 import importlib.util
 import pathlib
@@ -290,35 +306,15 @@ import pathlib
 root = pathlib.Path(__import__("sys").argv[1])
 home = pathlib.Path(__import__("sys").argv[2])
 home.mkdir(parents=True)
-(home / "config.toml").write_text('model = "keep-me"\n')
-(home / "config.toml.bak").write_text('old-backup\n')
+(home / "config.toml").write_text('[agents.luna_worker]\nconfig_file = "other.toml"\n')
 before_config = (home / "config.toml").read_bytes()
-before_backup = (home / "config.toml.bak").read_bytes()
 spec = importlib.util.spec_from_file_location("iron_box", root / "scripts" / "iron_box.py")
 assert spec and spec.loader
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
-real_atomic_write = module.atomic_write
-calls = 0
-
-def fail_registration(path, data, *, backup=True):
-    global calls
-    calls += 1
-    if calls == 4:
-        real_atomic_write(path, data, backup=backup)
-        raise RuntimeError("injected registration failure")
-    return real_atomic_write(path, data, backup=backup)
-
-module.atomic_write = fail_registration
-try:
-    module.install_codex_roles(home, dry_run=False, force=False)
-except RuntimeError as exc:
-    assert str(exc) == "injected registration failure"
-else:
-    raise AssertionError("injected registration failure was not raised")
+module.install_codex_roles(home, dry_run=False, force=False)
 assert (home / "config.toml").read_bytes() == before_config
-assert (home / "config.toml.bak").read_bytes() == before_backup
-assert not (home / "agents").exists()
+assert (home / "agents" / "luna-worker.toml").is_file()
 PY
 
 # A conflict in a later role proves the all-target preflight leaves earlier
@@ -334,8 +330,7 @@ contains 'use --force' "$tmp/roles.later-conflict"
 CODEX_HOME="$conflict_home" bash "$root/scripts/apply-iron-box.sh" --install-codex-roles > "$tmp/roles.later-dry" 2>&1 || true
 [[ ! -e "$conflict_home/agents/luna-worker.toml" ]] || fail 'conflict dry-run wrote earlier role'
 
-# A conflicting registration is preflighted with role targets, so it cannot
-# leave copied role files behind.
+# A legacy registration is optional and does not block standalone role files.
 registration_conflict_home="$tmp/registration-conflict-home"
 mkdir -p "$registration_conflict_home"
 cat > "$registration_conflict_home/config.toml" <<'EOF'
@@ -344,12 +339,23 @@ config_file = "other.toml"
 description = "conflict"
 EOF
 cp "$registration_conflict_home/config.toml" "$tmp/registration-conflict.before"
-if CODEX_HOME="$registration_conflict_home" bash "$root/scripts/apply-iron-box.sh" --apply --install-codex-roles > "$tmp/registration-conflict.out" 2>&1; then
-  fail 'conflicting registration accepted'
-fi
+CODEX_HOME="$registration_conflict_home" bash "$root/scripts/apply-iron-box.sh" --apply --install-codex-roles > "$tmp/registration-conflict.out"
 same "$registration_conflict_home/config.toml" "$tmp/registration-conflict.before"
-[[ ! -e "$registration_conflict_home/agents" ]] || fail 'registration conflict wrote role directory'
-contains 'use --force' "$tmp/registration-conflict.out"
+[[ -f "$registration_conflict_home/agents/luna-worker.toml" ]] || fail 'legacy registration blocked role install'
+
+# The audit sequence is safe in both directions: role install, then profile,
+# then a combined repeat must leave every target byte-identical.
+combined_home="$tmp/combined-home"
+mkdir -p "$combined_home"
+CODEX_HOME="$combined_home" bash "$root/scripts/apply-iron-box.sh" --apply --install-codex-roles > "$tmp/combined.roles"
+CODEX_HOME="$combined_home" bash "$root/scripts/apply-iron-box.sh" --apply --profile > "$tmp/combined.profile"
+cp -a "$combined_home/agents" "$tmp/combined-agents.before"
+cp "$combined_home/config.toml" "$tmp/combined-config.before"
+CODEX_HOME="$combined_home" bash "$root/scripts/apply-iron-box.sh" --apply --profile --install-codex-roles > "$tmp/combined.repeat"
+for role in luna-worker terra-worker sol-advisor; do
+  same "$tmp/combined-agents.before/$role.toml" "$combined_home/agents/$role.toml"
+done
+same "$tmp/combined-config.before" "$combined_home/config.toml"
 
 # Integration-style parser check against the installed Codex binary.  It uses
 # an isolated CODEX_HOME and `features list`: no model call, user config, or
@@ -418,7 +424,7 @@ runtime_only = work / "runtime-only"
 shutil.copytree(root, runtime_only, symlinks=True)
 for relative in module.validate_package(root)["developmentRequired"]:
     (runtime_only / relative).unlink()
-assert module.validate_package(runtime_only, require_development=False)["runtimeRequired"]
+assert module.validate_package(runtime_only)["runtimeRequired"]
 
 wrong_identity = work / "wrong-identity"
 shutil.copytree(root, wrong_identity, symlinks=True)
