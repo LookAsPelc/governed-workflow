@@ -42,11 +42,31 @@ choices; the README intentionally keeps those details out of the bootstrap.
 
 ## Installation
 
-Install the `iron-box` plugin through the supported plugin or marketplace flow
-for the client you are running. The onboarding skill checks the plugin's
-identity and its `iron-box-package.json` runtime payload before it offers any
-write. If that package is incomplete, it explains how to repair the plugin and
-stops without a skill-only fallback.
+For a normal installation, use the supported plugin or marketplace flow for
+the client you are running. With the Codex CLI, run the following from the
+root of the checkout:
+
+```bash
+codex plugin marketplace add .
+codex plugin list --marketplace iron-box --available
+codex plugin add iron-box@iron-box
+```
+
+The first command registers this local Git checkout as the `iron-box`
+marketplace. The second is an optional check that the plugin is discoverable;
+the third installs the complete plugin package into Codex's plugin cache. Use
+the equivalent supported Plugins/Marketplace UI when working in Codex Desktop.
+
+After installation, restart Codex and use its documented `Refresh`/`Reload
+plugins` action when available. Then invoke `$iron-box-onboarding` in the same
+thread. The onboarding skill checks the plugin's identity and its
+`iron-box-package.json` runtime payload before it offers any write. If that
+package is incomplete, it explains how to repair the plugin and stops without
+a skill-only fallback.
+
+The commands above install the plugin itself. They do not silently install
+roles, modify `config.toml`, or enable optional integrations; those are
+separate, consent-gated onboarding choices.
 
 ## Optional Jax companion
 
