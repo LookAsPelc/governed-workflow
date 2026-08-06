@@ -78,7 +78,7 @@ flowchart TD
     S -->|BLOCKED| U[Root takes user decision]
 ```
 
-Solreturns exactly `PASS`, `REVISE`, or `BLOCKED`, with
+Sol returns exactly `PASS`, `REVISE`, or `BLOCKED`, with
 evidence and rationale. `PASS` means evidence supports every acceptance
 criterion; `REVISE` means a deficiency is correctable within scope; `BLOCKED`
 means a required decision, access, or proof is missing. The root owns the

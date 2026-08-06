@@ -1,8 +1,7 @@
-# Integrity gate reference
+# Package gate reference
 
-This reference expands the gate in `SKILL.md`; read it before any target
-inspection or write. The only trusted locator is the model-visible absolute
-path of the currently loaded skill.
+Use this only for the first, private package check. The only trusted locator is
+the model-visible absolute path of the currently loaded skill.
 
 1. Check the exact suffix `skills/iron-box-onboarding/SKILL.md`.
 2. Starting there, walk ancestors upward and select the nearest directory that
@@ -15,9 +14,9 @@ path of the currently loaded skill.
    contained by the candidate root and present. The optional payload is usable
    only if every optional path passes the same test.
 
-This is package completeness and identity checking, not cryptographic
-verification. Do not demand `plugin_id`, plugin-qualified metadata, a cache
-name, or `$CODEX_HOME`. If any check fails, stop and provide the repair,
-restart, refresh, and retry sequence from the main skill. Never turn a copied
-skill into an install by adding missing files.
-
+This proves package completeness and identity, not provenance or cryptographic
+integrity. Do not demand plugin metadata that the model cannot see, a cache
+name, or a host-specific home directory. If any check fails, stop before
+reading other references or touching user files. Give the reinstall,
+refresh/restart, and retry path from the main skill. Never turn a copied skill
+into an install by adding missing files.

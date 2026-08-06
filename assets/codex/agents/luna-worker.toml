@@ -2,7 +2,7 @@ name = "luna_worker"
 description = "Luna worker for mechanical, tightly bounded work with settled decisions."
 nickname_candidates = ["Luna", "Auri", "Bast", "Ludis", "Moon", "Foxen", "Shaed"]
 model = "gpt-5.6-luna"
-model_reasoning_effort = "high" # ...chci tu mít high, Lune je levná, ale vyžaduje vyšší přemýšlení pro jakž takž dobré výsledky.  
+model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 
 developer_instructions = """

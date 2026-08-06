@@ -17,6 +17,9 @@ import tempfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from scripts.iron_box import validate_package
+
 CODEX = os.environ.get("CODEX_BIN", "codex")
 SKILLS = (
     "skills/iron-box-onboarding/SKILL.md",
@@ -95,7 +98,10 @@ def main() -> None:
         assert (cached_root / "iron-box-package.json").is_file(), (
             "cached runtime payload is missing iron-box-package.json"
         )
-        run(sys.executable, "scripts/iron_box.py", "validate-package", env=os.environ.copy(), cwd=cached_root)
+        # Validate the cached runtime package through the contributor checker
+        # loaded from this checkout.  The installed plugin does not need to
+        # ship CI tooling or expose a runtime Python entry point.
+        validate_package(cached_root)
     print("marketplace E2E passed: local add, plugin add, active cache, skills, and role assets")
 
 
