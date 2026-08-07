@@ -1,23 +1,37 @@
 #!/usr/bin/env python3
-"""Contributor-side validation for an Iron Box package.
+"""Package validation and the bounded Iron Box runtime bootstrap.
 
-This checker is intentionally read-only.  It validates the immutable package
-sentinel and its declared payloads for CI/development use; it is not an
-installer, client controller, status reporter, or configuration editor.
-Runtime onboarding is performed by the host application's supported plugin
-flow and must not invoke this module.
+Validation remains read-only.  ``activate-package`` is deliberately narrower
+than an installer: after validation it creates only missing packaged role and
+Jax asset files, preserves matching user files, rejects conflicts, and rolls
+back files created by a failed invocation.  It never controls a client or
+edits a user's broader configuration.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
+import shutil
+import tempfile
 from pathlib import Path
 from pathlib import PurePosixPath, PureWindowsPath
 from typing import Any
 
 
 ROOT = Path(__file__).resolve().parent.parent
+
+# These files are package-supported bootstrap payloads.  The current plugin
+# manifest does not have an ``agents`` field, so the host must make these
+# definitions available through one bounded, idempotent activation operation.
+BOOTSTRAP_FILES = (
+    ("assets/codex/agents/luna-worker.toml", "agents/luna-worker.toml"),
+    ("assets/codex/agents/terra-worker.toml", "agents/terra-worker.toml"),
+    ("assets/codex/agents/sol-advisor.toml", "agents/sol-advisor.toml"),
+    ("assets/pets/jax/pet.json", "pets/jax/pet.json"),
+    ("assets/pets/jax/spritesheet.webp", "pets/jax/spritesheet.webp"),
+)
 
 
 def _normalise_declared_path(value: Any) -> str:
@@ -181,19 +195,101 @@ def package_status(package_root: Path = ROOT, *, require_development: bool = Fal
     return 0
 
 
+def _atomic_copy(source: Path, target: Path) -> None:
+    """Create one missing bootstrap file without exposing a partial write."""
+    target.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix=f".{target.name}.", dir=str(target.parent))
+    try:
+        with os.fdopen(fd, "wb") as destination, source.open("rb") as origin:
+            shutil.copyfileobj(origin, destination)
+        os.replace(temporary, target)
+    except BaseException:
+        try:
+            os.unlink(temporary)
+        except FileNotFoundError:
+            pass
+        raise
+
+
+def activate_package(package_root: Path, codex_home: Path, *, dry_run: bool = False) -> int:
+    """Activate packaged roles and Jax assets as one idempotent operation.
+
+    Existing matching files are left untouched.  A different existing file is
+    a conflict, so activation fails before any write.  If a later copy fails,
+    files created by this invocation are removed, giving the host a small,
+    recoverable rollback boundary without overwriting user data.
+    """
+    manifest = validate_package(package_root)
+    declared = set(manifest["runtimeRequired"])
+    for source_relative, _ in BOOTSTRAP_FILES:
+        if source_relative not in declared:
+            raise SystemExit(f"bootstrap payload is not runtimeRequired: {source_relative}")
+    regular_directory(codex_home)
+    targets: list[tuple[Path, Path]] = []
+    for source_relative, target_relative in BOOTSTRAP_FILES:
+        source = package_root.joinpath(*source_relative.split("/"))
+        target = codex_home.joinpath(*target_relative.split("/"))
+        regular_target(source, allow_missing=False)
+        current = codex_home
+        for component in target.relative_to(codex_home).parts[:-1]:
+            current = current / component
+            regular_directory(current)
+        regular_target(target)
+        if target.exists() and target.read_bytes() != source.read_bytes():
+            raise SystemExit(f"bootstrap conflict: {target}")
+        targets.append((source, target))
+
+    missing = [(source, target) for source, target in targets if not target.exists()]
+    if dry_run:
+        for _, target in missing:
+            print(f"bootstrap: would create {target}")
+        if not missing:
+            print("bootstrap: already active")
+        return 0
+
+    created: list[Path] = []
+    try:
+        for source, target in missing:
+            _atomic_copy(source, target)
+            created.append(target)
+    except BaseException:
+        for target in reversed(created):
+            try:
+                target.unlink()
+            except FileNotFoundError:
+                pass
+        raise
+    if missing:
+        print(f"bootstrap: activated {len(missing)} package files")
+    else:
+        print("bootstrap: already active")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Read-only contributor validation for an Iron Box package."
+        description="Validate an Iron Box package or run its bounded package bootstrap."
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
     package_parser = subparsers.add_parser("validate-package")
     package_parser.add_argument("package_root", nargs="?", type=Path)
     package_parser.add_argument("--development", action="store_true")
+    activate_parser = subparsers.add_parser(
+        "activate-package",
+        help="copy matching packaged roles and Jax assets into one CODEX_HOME",
+    )
+    activate_parser.add_argument("codex_home", type=Path)
+    activate_parser.add_argument("package_root", nargs="?", type=Path)
+    activate_parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
-    if args.command != "validate-package":  # pragma: no cover - argparse enforces this
-        parser.error("unknown command")
-    package_root = args.package_root or ROOT
-    return package_status(package_root.expanduser(), require_development=args.development)
+    if args.command == "validate-package":
+        package_root = args.package_root or ROOT
+        return package_status(package_root.expanduser(), require_development=args.development)
+    if args.command == "activate-package":
+        package_root = args.package_root or ROOT
+        return activate_package(package_root.expanduser(), args.codex_home.expanduser(), dry_run=args.dry_run)
+    parser.error("unknown command")
+    return 2
 
 
 if __name__ == "__main__":

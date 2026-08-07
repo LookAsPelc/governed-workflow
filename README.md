@@ -17,8 +17,8 @@ Iron Box provides:
   dependencies;
 - portable, narrowly scoped local changes that preserve unrelated user
   instructions;
-- read-only status checks and offline validation scripts for inspecting the
-  harness without starting a client or calling a network service; and
+- offline package validation plus a bounded, idempotent bootstrap for packaged
+  role and Jax assets; it never starts a client or calls a network service; and
 - a consent-gated onboarding skill for setting up the complete plugin package.
   A copied skill is not a supported installation.
 
@@ -52,9 +52,11 @@ Codex only when the skill is not visible or the client documents that it is
 needed. The onboarding skill checks the loaded package before offering setup;
 if the package is incomplete, it explains how to reinstall it and stops.
 
-The installation only installs the plugin. The onboarding conversation then
-walks through the available roles, global instructions, and recommended
-settings one topic at a time.
+The installation installs the plugin package. Its internal bootstrap makes the
+packaged role definitions available when the host supports the required local
+profile operation; onboarding does not present role activation as a separate
+choice. Jax then guides the user through global instructions and recommended
+settings one useful topic at a time.
 
 ## Agent instructions
 

@@ -1,101 +1,73 @@
 # Setup conversation reference
 
-Load this when the user is ready to discuss a setup group, not during the first
-reply. It keeps the conversation explanatory and incremental.
+Load this reference when Jax has finished the opening orientation. Explain the
+next topic in plain language, recommend values with a reason, and then ask for
+one meaningful decision. Keep the tone human and conversational; there is no
+required report layout.
 
-## One topic, one decision
+## Core journey and consent
 
-Explain the next group in plain language, show the recommended values and why
-they matter, then ask whether the user wants the recommendation, a
-customization, or a skip. Do not list every group in the opening message. A
-normal core batch gets one consent before writing; a personal preset, network
-access, or external plugin gets its own clear decision. The agent must obtain
-consent before writing and report what was applied, declined, unsupported, or
-uncertain.
+The package gate and internal role bootstrap happen before the first visible
+reply. They verify the packaged role definitions, copy only missing files, and
+roll back newly created files if a write fails. Existing matching files are
+left alone; a different existing role is a real conflict to explain, not a
+reason to overwrite it. The plugin manifest currently exposes skills, not a
+native `agents` payload, so never claim otherwise.
 
-Check the current client/version documentation once for the session and again
-only when the client or version changes or a setting is unclear. If a setting
-is not documented for a **compatible Codex Desktop**, explain that and offer
-the supported UI or skip it. Never claim that a generic file operation is
-transactional, and never use a shell workaround.
+Jax is installed/activated first through the package-supported client
+operation; select `custom:jax` and the packaged display size through the same
+supported profile capability when available. Then guide the user through this
+sequence:
 
-## Core order and boundaries
+1. Orientation: what Luna, Terra, and Sol do and how they cooperate.
+2. Global guidance: inspect the user's `AGENTS.md` and merge Iron Box advice
+   into the document's existing structure. This is semantic editing owned by
+   the agent. Do not append a marker block, duplicate a section, or ask the
+   user to run a mechanical patcher.
+3. Workflow core: recommend the model, review, memory, request-for-input,
+   multi-agent, and workspace-access values that are relevant to this client.
+   Apply one coherent local batch after consent, preserving unrelated keys.
+4. Environment fit: inspect the actual platform and client before suggesting
+   WSL, terminal shell/location, appearance, cursor, context display, or remote
+   wakefulness. These are preferences, not Iron Box defaults.
+5. Extras: recommend Superpowers, Context7, find-skills, or Mermaid tooling
+   when they fit the user's work. Explain that each is useful but not required;
+   the user handles a GUI login or external authorization when needed.
+6. Live test: run the smallest useful multi-agent check and distinguish static
+   asset presence from a live client probe.
 
-Core comes first: the packaged `luna-worker.toml`, `terra-worker.toml`, and
-`sol-advisor.toml` are copied to the effective Codex agents directory by the
-client's native file capability. Preserve existing user role files and stop on
-a conflict. The managed global `AGENTS.md` block is a separate explained
-choice. Static files prove presence only; a later supported live probe proves
-exposure.
+A single consent may cover a bounded group of safe, reversible local changes.
+Ask separately only for a material personal preference, network/external
+authentication, GUI click, privileged action, or destructive change. Explain
+the relevant downside before asking. Never turn a list of files into a series
+of approvals.
 
-For a compatible Codex Desktop client, offer the named **Iron Box Codex Desktop
-recommended preset** at `templates/codex-desktop.recommended.toml`. It is a
-recommendation, never an implicit default or a portable claim for another
-harness. Read the profile and discuss these five groups in separate turns, in
-this order:
+## Choosing settings
 
-1. orchestration: MultiAgent controls, Luna High worker default, limits, and
-   the catalog compatibility bridge below;
-2. root defaults: Terra root model and Auto Review;
-3. interaction: memories, request-for-input, fast mode, and JS repl;
-4. access: workspace network access;
-5. Desktop workflow: steering, WSL terminal, remote wakefulness, context
-   display, cursor preferences, themes, and the supported reasoning picker.
+Use `templates/codex-desktop.recommended.toml` as a workflow-core reference,
+not as a universal desktop preset. It intentionally leaves environment-specific
+choices unset. Offer a recommendation based on observed capabilities and the
+user's goals, rather than blindly copying every value.
 
-The already-enabled onboarding companion is never a separate public choice.
+Teach before asking: describe what a setting changes and why it helps. Lead
+toward a recommendation instead of merely enumerating every possible value.
+Batch safe work the client can perform. If a supported write is unavailable,
+say exactly what could not be verified and provide the official UI route; never
+pretend a shell copy changed the Desktop profile.
 
-For each accepted group, show the exact values and target and ask for consent
-before writing. Apply only through a documented client-permitted capability;
-otherwise give guided official steps. Do not silently overwrite an existing
-value, use a shell workaround to drive the host, or claim an unsupported key
-applied. Jax must already be installed and visible before its selection can be
-considered applied. Report applied, declined, unsupported, and uncertain keys
-separately.
+## Luna catalog compatibility
 
-## Luna catalog compatibility bridge
-
-Luna's preferred route is still a new thread. This bridge only makes Luna
-selectable as a spawned subagent when the current Codex Desktop catalog declares
-`gpt-5.6-luna` as MultiAgent V1. Treat it as a required compatibility outcome
-of the orchestration topic, not as a reason to change the whole workflow.
-
-Before offering it, verify the running client/version, its current documented
-catalog capability, the effective `models_cache.json`, and the current Luna
-entry. If Luna is already declared V2, report that and do nothing. If it is V1,
-explain the global effect and ask for consent for this required compatibility
-write:
-
-1. Copy the current catalog to an absolute, dedicated path such as
-   `$CODEX_HOME/model-catalogs/desktop-multi-agent.json`.
-2. In that copy change only `gpt-5.6-luna.multi_agent_version` from `v1` to
-   `v2`; preserve every other catalog entry and field.
-3. Set `model_catalog_json` in the effective `config.toml` to that absolute
-   copy, preserving unrelated configuration.
-4. Request a full Codex Desktop restart, then perform a supported live probe
-   that confirms Luna is selectable as a subagent. Report exactly what the
-   probe proves.
-
-This override replaces the bundled catalog; it is not an overlay. Warn the user
-that it may become stale after a Codex update. After each update, first test
-without the override; if native V2 support is present, remove the override and
-dedicated copy. Otherwise rebuild the copy from the fresh cache and change only
-the Luna version flag again. Never use a legacy installer path for this bridge,
-and never claim success before the restart and live probe. If the user declines
-the bridge, record orchestration as incomplete and do not report onboarding as
-complete; offer to resume this specific step later.
-
-## Suggested extras
-
-Offer Superpowers, Context7, find-skills, and design-doc-mermaid one at a time.
-Strongly recommend Superpowers and Context7, explain the benefit, and use the
-supported installation or UI path for the current client. Ask separately about
-network/auth where relevant and keep provider keys out of project/client
-configuration. An extra is never a prerequisite for completing Iron Box core.
+Luna's preferred route is a new thread. If the running client exposes a
+documented V1/V2 catalog compatibility issue, explain the global effect before
+offering the dedicated catalog copy and restart. Change only the Luna version
+field, preserve all other entries, and claim success only after the documented
+live probe. If the user declines, record that orchestration remains incomplete
+and offer to resume later. If the client already exposes V2, do nothing.
 
 ## Recovery and reporting
 
-Reject symlinks, reparse points, unsafe parents, malformed config, and
-conflicting managed blocks. Report unchanged, updated, rolled-back, skipped,
-and uncertain targets separately. Restart or refresh only when documented and
-at the smallest useful boundary; then report what the live probe actually
-demonstrates.
+Preserve unrelated configuration and retain a backup before changing an
+existing runtime file. Report the result naturally: what changed, what stayed
+the same, and any uncertainty or unsupported capability. Roll back the bounded
+change if verification fails. Ask for a restart only when the client documents
+that it is needed, then re-check the relevant live capability.

@@ -12,6 +12,7 @@
     "skills/iron-box-onboarding/references/jax-lore.md",
     "skills/iron-box-onboarding/references/setup-protocol.md",
     "skills/iron-box-orchestration/SKILL.md",
+    "scripts/iron_box.py",
     "templates/AGENTS.global.recommended.md",
     "templates/codex-desktop.recommended.toml",
     "assets/app-icon.png",

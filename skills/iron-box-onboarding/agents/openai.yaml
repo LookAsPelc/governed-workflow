@@ -1,4 +1,4 @@
 interface:
   display_name: "Iron Box Onboarding"
   short_description: "Guide a current, consent-based harness setup"
-  default_prompt: "Use $iron-box-onboarding to set up my governed client harness step by step."
+  default_prompt: "Use $iron-box-onboarding to guide my Iron Box setup. Take initiative, teach me the useful concepts, batch safe work, and pause for meaningful choices or GUI actions."

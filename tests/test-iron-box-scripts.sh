@@ -2,9 +2,10 @@
 set -euo pipefail
 
 # Contributor-side package tests. This file intentionally does not invoke a
-# Codex/Copilot client and does not exercise a runtime installer: onboarding is
-# owned by the host application's plugin flow. The historical filename is
-# retained so existing local CI commands continue to work.
+# Codex/Copilot client. It validates the package and exercises the bounded,
+# idempotent package bootstrap against an isolated temporary CODEX_HOME; the
+# host application still owns the user-facing onboarding flow. The historical
+# filename is retained so existing local CI commands continue to work.
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/iron-box-package-tests.XXXXXX")"
 trap 'rm -rf "$tmp"' EXIT
@@ -30,8 +31,8 @@ grep -Fq 'package integrity: valid' "$tmp/runtime.out" || fail 'runtime validati
 grep -Fq 'package integrity: valid' "$tmp/development.out" || fail 'development validation did not pass'
 same "$root/iron-box-package.json" "$before"
 
-# The contributor checker exposes exactly one operation and never retains the
-# old installer/status entry points.
+# The checker exposes validation plus one bounded package bootstrap. It never
+# retains the old installer/status entry points or AGENTS marker patcher.
 if python3 "$root/scripts/iron_box.py" status >"$tmp/status.out" 2>&1; then
   fail 'legacy status command is still accepted'
 fi
@@ -40,6 +41,21 @@ if python3 "$root/scripts/iron_box.py" apply >"$tmp/apply.out" 2>&1; then
 fi
 [[ ! -e "$root/scripts/apply-iron-box.sh" ]] || fail 'legacy apply wrapper remains'
 [[ ! -e "$root/scripts/iron-box-status.sh" ]] || fail 'legacy status wrapper remains'
+if grep -Fq '<!-- iron-box:' "$root/templates/AGENTS.global.recommended.md"; then
+  fail 'marker machinery remains in AGENTS template'
+fi
+
+# Bootstrap is one idempotent operation: it creates missing role/Jax payloads,
+# leaves matching files untouched, and refuses a conflicting user file.
+mkdir -p "$tmp/codex-home"
+python3 "$root/scripts/iron_box.py" activate-package "$tmp/codex-home" >"$tmp/bootstrap.out"
+python3 "$root/scripts/iron_box.py" activate-package "$tmp/codex-home" >>"$tmp/bootstrap.out"
+grep -Fq 'bootstrap: activated 5 package files' "$tmp/bootstrap.out" || fail 'bootstrap did not create all package payloads'
+grep -Fq 'bootstrap: already active' "$tmp/bootstrap.out" || fail 'bootstrap was not idempotent'
+printf 'different role\n' >"$tmp/codex-home/agents/luna-worker.toml"
+if python3 "$root/scripts/iron_box.py" activate-package "$tmp/codex-home" >"$tmp/bootstrap-conflict.out" 2>&1; then
+  fail 'bootstrap accepted a conflicting role file'
+fi
 
 # Validate a runtime-only checkout after removing development fixtures. This
 # protects the package contract from accidentally making CI-only files part of

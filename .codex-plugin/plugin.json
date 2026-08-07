@@ -13,7 +13,7 @@
     "developerName": "Iron Box maintainers",
     "category": "Developer Tools",
     "capabilities": ["Interactive", "Read", "Write"],
-    "defaultPrompt": ["Start Iron Box onboarding.", "Audit my current agent setup.", "Show the recommended configuration changes."],
+    "defaultPrompt": ["Guide me through Iron Box onboarding. Take initiative, teach me the relevant concepts, batch safe work, and pause only for meaningful choices or GUI actions."],
     "logo": "./assets/app-icon.png",
     "brandColor": "#F59E0B"
   }

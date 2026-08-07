@@ -50,20 +50,9 @@ for path in (*root.glob("agents/*.md"), *root.glob("skills/*/SKILL.md")):
 print("valid skill and agent frontmatter")
 
 template = (root / "templates" / "AGENTS.global.recommended.md").read_text(encoding="utf-8")
-start_marker = "<!-- iron-box:start -->"
-end_marker = "<!-- iron-box:end -->"
-start_at = template.find(start_marker)
-end_at = template.find(end_marker)
-if (
-    template.count(start_marker) != 1
-    or template.count(end_marker) != 1
-    or start_at < 0
-    or end_at < start_at
-    or template[:start_at].strip()
-    or template[end_at + len(end_marker):].strip()
-):
-    raise SystemExit("managed AGENTS template must contain only one marker block")
-print("valid managed AGENTS template")
+if "iron-box:start" in template or "iron-box:end" in template:
+    raise SystemExit("AGENTS template must be markerless")
+print("valid markerless AGENTS template")
 
 onboarding = root / "skills" / "iron-box-onboarding" / "SKILL.md"
 if onboarding.stat().st_size > 6_000:

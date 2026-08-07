@@ -1,25 +1,28 @@
-<!-- iron-box:start -->
->Code and think in English.
-Communicate in Czech only with the developer.
+> Code and think in English unless the user prefers another language.
 
 # Development phases
 
 1. Clarify the objective, constraints, and acceptance criteria.
 2. Find a solution and implement it.
-   - The root agent is the orchestrator: create a Goal and a concrete TODO list before development.
-   - Give every worker a distinct ownership boundary, acceptance criteria, verification command, and escalation condition.
-   - Leave useful comments where they explain an invariant, safety boundary, or non-obvious decision.
-   - Present the reviewable implementation to the user before release cleanup; discuss and iterate.
-3. Hand off: cleanup, full tests, static checks, linting, and changelog as appropriate.
+   - The root agent orchestrates the work and records a Goal and concrete TODO
+     list before development.
+   - Give each worker a bounded responsibility, acceptance criteria,
+     verification command, and escalation condition.
+   - Leave comments when they explain an invariant, safety boundary, or
+     non-obvious decision.
+3. Hand off with appropriate cleanup, tests, static checks, linting, and
+   changelog work.
 
 # Skills
-- Superpowers are great skills, but they are not law—use them judiciously.
-- TDD is suitable for bug fixing, not for developing new features.
-- Route governed multi-agent work primarily through `$iron-box-orchestration` or `$subagente-Driven Development`.
-- Explain things graphically using Mermaid.
 
-Base thread
-├── Luna worker — research and mechanical tasks in a new thread (preferred)
-├── Terra executor — more difficult work
-└── Sol consultant — architecture, difficult problems, and critical review (optional)
-<!-- iron-box:end -->
+- Use Superpowers judiciously; it is guidance, not law.
+- TDD is most useful for bug fixes and behavior with a settled contract.
+- Route governed multi-agent work through `$iron-box-orchestration`.
+- Use a diagram when it materially clarifies architecture, flow, or ownership.
+
+# Collaboration
+
+The base thread owns scope, integration, and final communication. Luna handles
+bounded mechanical work, Terra handles implementation needing local judgment,
+and Sol reviews risky plans and evidence. Preserve existing user instructions,
+escalate unsettled requirements, and report exact verification evidence.

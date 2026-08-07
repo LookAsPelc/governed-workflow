@@ -16,3 +16,4 @@ dist/
 *.egg-info/
 *:Zone.Identifier
 /naming.md
+temp/
