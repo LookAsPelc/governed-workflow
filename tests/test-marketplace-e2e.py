@@ -30,6 +30,15 @@ ROLES = (
     "assets/codex/agents/terra-worker.toml",
     "assets/codex/agents/sol-advisor.toml",
 )
+JAX_ASSETS = (
+    "assets/pets/jax/pet.json",
+    "assets/pets/jax/spritesheet.webp",
+)
+BOOTSTRAP_TARGETS = {
+    **{relative: relative.removeprefix("assets/codex/") for relative in ROLES},
+    "assets/pets/jax/pet.json": "pets/jax/pet.json",
+    "assets/pets/jax/spritesheet.webp": "pets/jax/spritesheet.webp",
+}
 MAX_SKILL_BYTES = 6_000
 
 
@@ -87,9 +96,30 @@ def main() -> None:
         assert source.get("source") == "local"
         assert Path(source["path"]).resolve() == fixture.resolve()
 
-        for relative in (*SKILLS, *ROLES):
+        for relative in (*SKILLS, *ROLES, *JAX_ASSETS):
             target = cached_root / relative
             assert target.is_file(), f"missing cached runtime payload: {relative}"
+        activation_home = temporary_root / "activated-codex-home"
+        activation_home.mkdir()
+        bootstrap_script = cached_root / "scripts/iron_box.py"
+        bootstrap_env = os.environ.copy()
+        bootstrap_env["CODEX_HOME"] = str(activation_home)
+        bootstrap_output = run(
+            sys.executable,
+            str(bootstrap_script),
+            "activate-package",
+            str(activation_home),
+            str(cached_root),
+            env=bootstrap_env,
+        )
+        assert "bootstrap: activated 5 package files" in bootstrap_output
+        for source_relative, target_relative in BOOTSTRAP_TARGETS.items():
+            source = cached_root / source_relative
+            target = activation_home / target_relative
+            assert target.is_file(), f"bootstrap omitted cached payload: {target_relative}"
+            assert target.read_bytes() == source.read_bytes(), (
+                f"bootstrap payload differs from cache: {target_relative}"
+            )
         onboarding = cached_root / "skills/iron-box-onboarding/SKILL.md"
         assert onboarding.stat().st_size <= MAX_SKILL_BYTES, (
             f"cached onboarding SKILL.md exceeds {MAX_SKILL_BYTES} bytes: "
@@ -102,7 +132,10 @@ def main() -> None:
         # loaded from this checkout.  The installed plugin does not need to
         # ship CI tooling or expose a runtime Python entry point.
         validate_package(cached_root)
-    print("marketplace E2E passed: local add, plugin add, active cache, skills, and role assets")
+    print(
+        "marketplace E2E passed: local add, plugin add, cached bootstrap, "
+        "skills, roles, and Jax assets"
+    )
 
 
 if __name__ == "__main__":

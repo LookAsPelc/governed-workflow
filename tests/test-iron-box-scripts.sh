@@ -162,47 +162,4 @@ path.write_text(json.dumps(data))
 PY
 expect_invalid "$tmp/escaped"
 
-# Optional Jax payloads may be omitted as one complete group, while a partial
-# optional group is rejected. Derive the group from the sentinel so this test
-# stays structural as optional assets evolve.
-python3 - "$root" "$tmp/optional-absent" "$tmp/optional-partial" <<'PY'
-import json
-import pathlib
-import shutil
-import sys
-
-root = pathlib.Path(sys.argv[1])
-absent = pathlib.Path(sys.argv[2])
-partial = pathlib.Path(sys.argv[3])
-for target in (absent, partial):
-    shutil.copytree(root, target, symlinks=True)
-manifest = json.loads((root / "iron-box-package.json").read_text())
-optional = manifest.get("optionalPayload", [])
-if optional:
-    for relative in optional:
-        path = absent / relative
-        if path.is_dir():
-            shutil.rmtree(path)
-        elif path.exists():
-            path.unlink()
-    first = partial / optional[0]
-    if first.is_dir():
-        shutil.rmtree(first)
-    elif first.exists():
-        first.unlink()
-PY
-if python3 - "$root/iron-box-package.json" >"$tmp/optional.count" <<'PY'
-import json
-import sys
-
-data = json.load(open(sys.argv[1]))
-raise SystemExit(0 if data.get("optionalPayload") else 1)
-PY
-then
-  validate "$tmp/optional-absent" >"$tmp/optional-absent.out"
-  expect_invalid "$tmp/optional-partial"
-else
-  echo 'optional payload test skipped: sentinel declares no optional group'
-fi
-
 echo 'Iron Box contributor package tests passed'

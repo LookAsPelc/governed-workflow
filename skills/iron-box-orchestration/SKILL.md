@@ -20,7 +20,7 @@ These are recommended routing heuristics:
 
 | Route | Best fit | Relative cost guidance |
 | --- | --- | --- |
-| gpt-5.6-Luna Medium/High | Bounded, mechanical, or research work | Because 25x cheaper than Sol and 10x cheaper than Terra |
+| gpt-5.6-Luna Medium/High | Bounded, mechanical, or research work | Roughly 10x cheaper than Terra and 25x cheaper than Sol; a routing heuristic, not an accounting guarantee |
 | gpt-5.6-Luna Xhigh/Max | Difficult but still bounded work | May be preferred before Sol Low and Terra Medium |
 | gpt-5.6-Terra | Escalated implementation and local judgment | Use when Luna cannot safely decide implementation details |
 | gpt-5.6-Sol Low/Medium/High | Architecture, risk, and final-evidence review | Use for the highest-leverage judgment and review |
