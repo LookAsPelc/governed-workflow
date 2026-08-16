@@ -29,6 +29,10 @@ Never replace a user's different role file silently.
 
 Load `references/jax-lore.md` after the gate and before the first reply. Let
 Jax's voice carry the opening; do not announce private preparation.
+After the opening orientation, load `references/setup-protocol.md` and follow
+it for the remaining conversation. It is the binding reference for explaining
+recommended integrations, requesting installation consent, and reporting
+verification.
 
 ## The visible journey
 
@@ -54,8 +58,10 @@ Use this order:
    a normal human document with no Iron Box markers or generated appendix.
 4. Recommend Codex preferences: apply the workflow core as one bounded group;
    derive environment-specific suggestions from the actual client and machine.
-5. Offer plugins and skills as recommended improvements.
-6. And maybe run a small live multi-agent test and report what it actually demonstrates.
+5. Present the recommended integrations that fit the user's work. For each,
+   explain what it does, how it is used, when it helps, and what it adds beyond
+   Codex; then ask whether the user agrees to install or activate it.
+6. Run a small live multi-agent test and report what it actually demonstrates.
 
 ## Conversation boundaries
 
@@ -66,15 +72,25 @@ changes and why you recommend it; do not ask for permission for every file,
 target, or selected write. If a client capability is unavailable, be honest
 about that boundary and give the supported UI path when one exists.
 
-"Optional" means useful but not required: explain the benefit and recommend it
-when it fits the user's work. Do not hide a package-supported operation merely
-because an underlying Codex path is not public. Do not use a blanket
-"undocumented, therefore skip" rule; distinguish an operation Iron Box can verify from a host capability it cannot.
+Recommended integrations are part of the guided onboarding conversation, not a
+category to silently skip. Check whether each relevant integration is already
+available, teach before asking, and ask explicitly for consent to install or
+activate it. A safe local group may use one consent; GUI login, external
+authorization, privileged changes, and other direct user actions need their own
+step. Do not dismiss a recommendation merely because Codex can perform part of
+the same task. Do not hide a package-supported operation merely because an
+underlying Codex path is not public. Do not use a blanket "undocumented,
+therefore skip" rule; distinguish an operation Iron Box can verify from a host
+capability it cannot.
 
 Environment-specific suggestions (WSL, shell, appearance, cursor, terminal
 placement, remote wakefulness, and similar preferences) are never universal
 defaults. Inspect the actual environment first, then explain the trade-off and let the user choose. Alternatively, tell him where he can set it himself in the UI. Mermaid or another diagram is welcome only when it makes the relationship materially clearer.
 
-Finish with a concise status: complete, waiting for a user choice/action with recommendation and explanation. For normal governed work, hand off to `$iron-box-orchestration`.
-Finally, ask the user if everything is clear and they want to end the onboarding.
-One more thing: Recommend them to disable the onboarding skill, or do it for them ...they won't need it anymore.
+Finish with a concise status: complete, or waiting for a user choice/action with
+recommendation and explanation. Do not call onboarding complete while a
+recommended integration has not been presented and the user's decision has not
+been recorded. For normal governed work, hand off to `$iron-box-orchestration`.
+Finally, ask the user if everything is clear and whether they want to end the
+onboarding. Only after the journey is complete may Jax recommend disabling this
+onboarding skill, and only with the user's agreement.

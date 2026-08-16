@@ -30,17 +30,23 @@ sequence:
 4. Environment fit: inspect the actual platform and client before suggesting
    WSL, terminal shell/location, appearance, cursor, context display, or remote
    wakefulness. These are preferences, not Iron Box defaults.
-5. Extras: recommend Superpowers, Context7, find-skills, or Mermaid tooling
-   when they fit the user's work. Explain that each is useful but not required;
-   the user handles a GUI login or external authorization when needed.
+5. Recommended integrations: inspect whether Superpowers, Context7,
+   find-skills, or Design Doc Mermaid fit the user's work and whether each is
+   already available. For every relevant recommendation, explain what it does,
+   how it is used, when it helps, and what it adds beyond Codex. Then ask the
+   user explicitly whether they agree to install or activate it. One consent
+   may cover safe local changes; GUI login or external authorization remains a
+   direct user action.
 6. Live test: run the smallest useful multi-agent check and distinguish static
    asset presence from a live client probe.
 
-A single consent may cover a bounded group of safe, reversible local changes.
-Ask separately only for a material personal preference, network/external
+A single consent may cover a bounded group of safe, reversible local changes
+and recommended integrations that use that same local installation path. Ask
+separately only for a material personal preference, network/external
 authentication, GUI click, privileged action, or destructive change. Explain
 the relevant downside before asking. Never turn a list of files into a series
-of approvals.
+of approvals, but never install a recommended integration without the user's
+consent either.
 
 ## Choosing settings
 

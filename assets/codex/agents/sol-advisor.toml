@@ -2,6 +2,7 @@ name = "sol_advisor"
 description = "Sol advisor for risky plans and final evidence."
 nickname_candidates = ["Elodin", "Selitos", "Aleph", "Lethani", "Caesura"]
 model = "gpt-5.6-sol"
+model_reasoning_effort = "low"
 
 developer_instructions = """
 Judge the supplied plan or evidence. Find where evidence stops supporting a claim. Focus on acceptance criteria, correctness, regressions, security, data integrity, hidden assumptions, and missing verification.

@@ -2,100 +2,73 @@
 
 ![Iron Box](assets/app-icon.png)
 
-Iron Box is a small, user-owned Codex workflow built around Luna workers,
-Terra execution, Sol review, and root-owned integration. It explains what it
-is about to change, preserves unrelated configuration, and leaves the key
-with the user.
+Iron Box is a guided workflow for Codex Desktop. It helps the user set up and
+use three cooperating workers—Luna, Terra, and Sol—with Jax as the onboarding
+guide.
 
-## What it does
+## For the installation agent
 
-Iron Box provides:
+If the user asks you to install this repository, use the supported plugin
+installation flow. **After installation, immediately invoke the
+`$iron-box-onboarding` skill and continue according to its instructions.**
 
-- client and capability checks that prefer the installed client's current,
-  official documentation;
-- explicit, reviewable approval gates for configuration and optional
-  dependencies;
-- portable, narrowly scoped local changes that preserve unrelated user
-  instructions;
-- offline package validation plus a bounded, idempotent bootstrap for packaged
-  role and Jax assets; it never starts a client or calls a network service; and
-- a consent-gated onboarding skill for setting up the complete plugin package.
-  A copied skill is not a supported installation.
+Do not stop after reporting that the plugin was installed. Do not clone the
+repository into the user's project or copy role files by hand. If the skill is
+not visible, refresh the plugin or restart Codex only when the client requires
+it, then continue with onboarding.
 
-After installation, read the
-[`iron-box-onboarding` skill](skills/iron-box-onboarding/SKILL.md). It is the
-authoritative guide to the current onboarding conversation and client-specific
-choices; the README intentionally keeps those details out of the bootstrap.
+## For the user
 
-## Installation
+Iron Box gives Codex a simple division of work:
 
-For a normal installation, give your Codex agent this repository URL and ask it
-to install Iron Box. The agent should use the plugin installation surface
-provided by the running client, then continue with the onboarding skill after
-the plugin is refreshed. It should not clone the repository into your project,
-copy role files by hand, or drive the host application through a terminal.
+- **Luna** — the economical first worker for routine, bounded tasks;
+- **Terra** — implementation and local judgment when a task needs escalation;
+- **Sol** — review of architecture, risk, and evidence; and
+- **Jax** — explains the setup and guides you through the choices.
 
-For a terminal installation, use the supported Codex marketplace flow:
+Installation is not the complete setup. Onboarding verifies the package,
+activates the packaged roles and Jax through the supported client capability,
+and tells you what was actually verified. It also explains relevant settings
+and recommended integrations before asking whether you want to install or
+activate them. You do not need to know what to ask for or how the pieces fit
+together.
+
+## Install through an agent
+
+Give your Codex agent this repository URL and use a request such as:
+
+> Install Iron Box from https://github.com/LookAsPelc/governed-workflow. Use the
+> supported plugin flow and continue directly with the Iron Box onboarding. I
+> am new to this, so explain the choices and do not stop after installation.
+
+The agent should install the plugin through the running client's plugin or
+marketplace interface. The onboarding skill is the source of truth for the
+remaining setup.
+
+## Install manually
+
+With the supported Codex CLI, use:
 
 ```bash
 codex plugin marketplace add LookAsPelc/governed-workflow
 codex plugin add iron-box@iron-box
 ```
 
-For development from a local checkout, replace the repository argument with
-`.`. The first command registers the `iron-box` marketplace; the second
-installs the complete plugin package into Codex's plugin cache. The equivalent
-supported Plugins/Marketplace UI is fine as well.
+Then start the guided setup with `$iron-box-onboarding`. The equivalent
+Plugins/Marketplace UI is also supported. For a local development checkout,
+use `.` instead of the GitHub repository URL.
 
-After installation, invoke `$iron-box-onboarding`. Refresh plugins or restart
-Codex only when the skill is not visible or the client documents that it is
-needed. The onboarding skill checks the loaded package before offering setup;
-if the package is incomplete, it explains how to reinstall it and stops.
+## If installation stopped early
 
-The installation installs the plugin package. Its internal bootstrap makes the
-packaged role definitions available when the host supports the required local
-profile operation; onboarding does not present role activation as a separate
-choice. Jax then guides the user through global instructions and recommended
-settings one useful topic at a time.
+Tell the agent:
 
-## Agent instructions
+> Iron Box is installed, but onboarding is not complete. Verify that the plugin
+> is enabled and continue with `$iron-box-onboarding`. Explain recommended
+> integrations and ask for my consent before installing or activating them.
 
-When a user gives an agent the Iron Box repository, the agent should:
+If Jax is not active, run onboarding again rather than manually editing a
+profile or copying pet files. If the client cannot verify activation, the agent
+must tell you which supported UI action is needed.
 
-1. Use the running client's supported plugin installation surface for
-   `LookAsPelc/governed-workflow`.
-2. Confirm that Iron Box is enabled. Refresh or restart only if the client
-   requires it for the skill to appear.
-3. Invoke `$iron-box-onboarding` immediately and let that skill lead the user
-   through the rest of setup.
-
-Do not improvise a second installer. The onboarding skill is the source of
-truth for the conversation after the package is loaded.
-
-## Safety and privacy
-
-Iron Box has no telemetry and does not send project content to its maintainers.
-Optional integrations follow their own data policies. Configuration changes
-preserve unrelated instructions.
-
-## Verification
-
-Maintainers can run the offline checks from the repository root:
-
-```bash
-bash scripts/validate.sh
-bash tests/test-iron-box-scripts.sh
-```
-
-These checks are contributor/CI tooling, not end-user installation
-requirements.
-
-## Contributing
-
-Keep changes narrow, preserve unrelated user configuration, and document the
-evidence for client-specific claims. The onboarding skill is the authoritative
-place for setup behavior; this README intentionally keeps the bootstrap small.
-
-## License
-
-Iron Box is distributed under the [MIT License](LICENSE).
+The onboarding skill handles the detailed setup, preserves unrelated user
+configuration, and reports unsupported or unverified capabilities honestly.
