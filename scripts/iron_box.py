@@ -13,7 +13,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import re
 import shutil
 import tempfile
 from pathlib import Path
@@ -23,19 +22,6 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
 AGENT_PLUGINS_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
-PORTABLE_MANIFEST_FIELDS = {
-    "$schema",
-    "name",
-    "version",
-    "description",
-    "author",
-    "homepage",
-    "repository",
-    "license",
-    "keywords",
-    "extensions",
-}
-PORTABLE_NAME = re.compile(r"^(?!.*(?:--|\.\.))[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$")
 
 # These files are Codex-specific provisioning payloads kept beside the
 # portable Agent Plugins core.  The portable manifest intentionally does not
@@ -88,57 +74,74 @@ def regular_target(path: Path, *, allow_missing: bool = True) -> None:
 
 
 def validate_portable_manifest(manifest: Any, *, expected_name: str, expected_version: str) -> None:
-    """Validate the closed Agent Plugins 1.0 root manifest offline.
+    """Validate only Iron Box's offline invariants for the portable manifest.
 
-    The published schema is authoritative, but package validation deliberately
-    stays deterministic and offline.  This focused check mirrors the schema's
-    field/type constraints and the package identity/version contract without
-    downloading a schema at runtime.
+    Agent Plugins owns the manifest schema.  Runtime validation does not try to
+    reproduce that external schema; it checks the package identity, version,
+    schema declaration, and keeps client-only provisioning fields out of the
+    portable core.
     """
     if not isinstance(manifest, dict):
         raise SystemExit("portable plugin.json must contain an object")
-    unknown = set(manifest) - PORTABLE_MANIFEST_FIELDS
-    if unknown:
-        raise SystemExit(
-            "portable plugin.json contains unsupported fields: "
-            f"{sorted(unknown)}"
-        )
     if manifest.get("$schema") != AGENT_PLUGINS_SCHEMA:
         raise SystemExit("portable plugin.json must target Agent Plugins 1.0.0")
-    name = manifest.get("name")
-    if (
-        not isinstance(name, str)
-        or not 1 <= len(name) <= 64
-        or PORTABLE_NAME.fullmatch(name) is None
-    ):
-        raise SystemExit("portable plugin.json has an invalid name")
-    if name != expected_name:
+    if manifest.get("name") != expected_name:
         raise SystemExit("portable plugin.json identity mismatch")
-    version = manifest.get("version")
-    if not isinstance(version, str) or not version:
-        raise SystemExit("portable plugin.json must declare a version")
-    if version != expected_version:
+    if manifest.get("version") != expected_version:
         raise SystemExit("portable plugin.json version mismatch")
-    for field in ("description", "homepage", "repository", "license"):
-        if field in manifest and not isinstance(manifest[field], str):
-            raise SystemExit(f"portable plugin.json field must be a string: {field}")
-    author = manifest.get("author")
-    if author is not None:
-        if not isinstance(author, dict) or set(author) - {"name", "email", "url"}:
-            raise SystemExit("portable plugin.json author must be a known-field object")
-        if any(not isinstance(value, str) for value in author.values()):
-            raise SystemExit("portable plugin.json author values must be strings")
-    keywords = manifest.get("keywords")
-    if keywords is not None and (
-        not isinstance(keywords, list) or any(not isinstance(item, str) for item in keywords)
-    ):
-        raise SystemExit("portable plugin.json keywords must be an array of strings")
-    extensions = manifest.get("extensions")
-    if extensions is not None and (
-        not isinstance(extensions, dict)
-        or any(not isinstance(value, dict) for value in extensions.values())
-    ):
-        raise SystemExit("portable plugin.json extensions must map names to objects")
+    if any(field in manifest for field in ("agents", "skills", "category", "interface")):
+        raise SystemExit(
+            "portable plugin.json exposes client-specific provisioning fields"
+        )
+
+
+def validate_codex_plugin_manifest(
+    manifest: Any, *, expected_name: str, expected_version: str
+) -> None:
+    """Validate the Codex plugin provisioning manifest used by Iron Box."""
+    if not isinstance(manifest, dict):
+        raise SystemExit("Codex plugin manifest must contain an object")
+    if manifest.get("name") != expected_name:
+        raise SystemExit("Codex plugin manifest identity mismatch")
+    if manifest.get("version") != expected_version:
+        raise SystemExit("Codex plugin manifest version mismatch")
+    if manifest.get("skills") != "./skills/":
+        raise SystemExit("Codex plugin manifest must expose ./skills/")
+
+
+def validate_codex_marketplace_manifest(
+    manifest: Any, *, expected_name: str
+) -> None:
+    """Validate that the Codex marketplace references the packaged plugin."""
+    if not isinstance(manifest, dict) or not isinstance(manifest.get("plugins"), list):
+        raise SystemExit("Codex marketplace must declare a plugins array")
+    for plugin in manifest["plugins"]:
+        if not isinstance(plugin, dict) or plugin.get("name") != expected_name:
+            continue
+        source = plugin.get("source")
+        if not isinstance(source, dict) or source.get("source") != "local":
+            continue
+        if source.get("path") not in (".", "./"):
+            continue
+        return
+    raise SystemExit("Codex marketplace does not reference the Iron Box plugin")
+
+
+def validate_github_marketplace_manifest(
+    manifest: Any, *, expected_name: str, expected_version: str
+) -> None:
+    """Validate the Copilot marketplace entry, independent of catalog metadata."""
+    if not isinstance(manifest, dict) or not isinstance(manifest.get("plugins"), list):
+        raise SystemExit("GitHub marketplace must declare a plugins array")
+    for plugin in manifest["plugins"]:
+        if not isinstance(plugin, dict) or plugin.get("name") != expected_name:
+            continue
+        if plugin.get("version") != expected_version:
+            raise SystemExit("GitHub marketplace Iron Box plugin version mismatch")
+        if plugin.get("source") not in (".", "./"):
+            raise SystemExit("GitHub marketplace Iron Box plugin source mismatch")
+        return
+    raise SystemExit("GitHub marketplace does not contain the Iron Box plugin")
 
 
 def validate_package(
@@ -184,38 +187,34 @@ def validate_package(
         portable, expected_name=payload["name"], expected_version=expected_version
     )
 
-    # Iron Box currently targets Codex Desktop.  Validate the Codex plugin
-    # manifest and local marketplace entry; these remain client-specific.
-    manifest_paths = (
-        ".codex-plugin/plugin.json",
-        ".agents/plugins/marketplace.json",
-        ".github/plugin/marketplace.json",
-    )
-    for manifest_name in manifest_paths:
+    # Client/distribution manifests have different semantics.  A marketplace
+    # may have its own identity and metadata; only its Iron Box plugin entry is
+    # coupled to the package identity/version where that host requires it.
+    def read_client_manifest(manifest_name: str) -> Any:
         manifest_path = package_root / manifest_name
         regular_target(manifest_path, allow_missing=False)
         try:
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            return json.loads(manifest_path.read_text(encoding="utf-8"))
         except (OSError, UnicodeError, json.JSONDecodeError) as exc:
             raise SystemExit(f"invalid package manifest {manifest_name}: {exc}") from exc
-        if not isinstance(manifest, dict) or manifest.get("name") != payload["name"]:
-            raise SystemExit(f"package manifest identity mismatch: {manifest_name}")
-        versions = [manifest.get("version")]
-        metadata = manifest.get("metadata")
-        if isinstance(metadata, dict):
-            versions.append(metadata.get("version"))
-        plugins = manifest.get("plugins")
-        if isinstance(plugins, list):
-            for item in plugins:
-                if isinstance(item, dict):
-                    versions.append(item.get("version"))
-                    if item.get("name") != payload["name"]:
-                        raise SystemExit(
-                            f"package manifest plugin identity mismatch: {manifest_name}"
-                        )
-        for version in versions:
-            if version is not None and version != expected_version:
-                raise SystemExit(f"package manifest version mismatch: {manifest_name}")
+
+    try:
+        validate_codex_plugin_manifest(
+            read_client_manifest(".codex-plugin/plugin.json"),
+            expected_name=payload["name"],
+            expected_version=expected_version,
+        )
+        validate_codex_marketplace_manifest(
+            read_client_manifest(".agents/plugins/marketplace.json"),
+            expected_name=payload["name"],
+        )
+        validate_github_marketplace_manifest(
+            read_client_manifest(".github/plugin/marketplace.json"),
+            expected_name=payload["name"],
+            expected_version=expected_version,
+        )
+    except SystemExit as exc:
+        raise SystemExit(str(exc)) from exc
 
     result: dict[str, tuple[str, ...]] = {}
     for category in ("runtimeRequired", "developmentRequired", "optionalPayload"):

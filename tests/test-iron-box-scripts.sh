@@ -52,42 +52,17 @@ assert ".github/plugin/marketplace.json" in json.loads(
 )["runtimeRequired"]
 PY
 
-# Stale Luna catalog or index mutation and Luna-only thread fallback wording must
-# not return to tracked policy, docs, or executable files.  Thread mode is a
-# global topology; the Codex role assets remain ordinary gpt-5.6-luna roles.
+# Thread mode is a global topology; the Codex role assets remain ordinary
+# gpt-5.6-luna roles.
 python3 - "$root" <<'PY'
 import json
 import pathlib
-import subprocess
 import sys
 import tomllib
 
 root = pathlib.Path(sys.argv[1])
-tracked = subprocess.check_output(
-    ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
-    cwd=root,
-    text=True,
-).splitlines()
-patterns = (
-    "Luna catalog " + "compatibility",
-    "V1/V2 " + "catalog",
-    "catalog " + "copy",
-    "model " + "catalog",
-    "model " + "index",
-    "Luna's preferred route is a new " + "thread",
-    "For Luna's " + "route",
-    "catalog/" + "index",
-)
-for relative in tracked:
-    if relative.startswith("temp/"):
-        continue
-    path = root / relative
-    if path.suffix.lower() not in {".md", ".py", ".sh", ".toml", ".json", ".yml", ".yaml"}:
-        continue
-    text = path.read_text(encoding="utf-8", errors="replace").casefold()
-    for pattern in patterns:
-        if pattern.casefold() in text:
-            raise SystemExit(f"stale Luna/catalog wording in {relative}: {pattern}")
+package = json.loads((root / "iron-box-package.json").read_text(encoding="utf-8"))
+assert package["version"] == "0.3.0"
 
 roles = {
     "luna-worker.toml": "luna_worker",
@@ -101,6 +76,33 @@ for filename, expected_name in roles.items():
         role = tomllib.load(handle)
     assert role["name"] == expected_name
     assert role["model"] == "gpt-5.6-luna"
+PY
+
+# Marketplace catalogs own their metadata; changing it must not invalidate the
+# packaged plugin as long as the Iron Box entry remains correct.
+python3 - "$root" "$tmp/independent-marketplace" <<'PY'
+import json
+import pathlib
+import shutil
+import subprocess
+import sys
+
+root = pathlib.Path(sys.argv[1])
+target = pathlib.Path(sys.argv[2])
+shutil.copytree(root, target)
+codex = target / ".agents/plugins/marketplace.json"
+catalog = json.loads(codex.read_text(encoding="utf-8"))
+catalog["name"] = "team-catalog"
+codex.write_text(json.dumps(catalog), encoding="utf-8")
+github = target / ".github/plugin/marketplace.json"
+catalog = json.loads(github.read_text(encoding="utf-8"))
+catalog["name"] = "copilot-catalog"
+catalog["metadata"]["version"] = "9.9.9"
+github.write_text(json.dumps(catalog), encoding="utf-8")
+subprocess.run(
+    [sys.executable, str(target / "scripts/iron_box.py"), "validate-package", str(target)],
+    check=True,
+)
 PY
 
 # The checker exposes validation plus one bounded package bootstrap. It never

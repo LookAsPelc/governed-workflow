@@ -35,16 +35,10 @@ Iron Box gives Codex a simple division of work:
 - **Jax** — explains the setup and guides you through the choices.
 
 The portable package is centered on Agent Skills (and MCP integrations when a
-host supplies them). Codex agent role definitions, profile/Jax behavior, and
-marketplace installation are client-specific integration; they are not
-portable Agent Plugins fields. A host that supports the Agent Plugins standard
-can consume the skills package, but its installation and runtime behavior are
-determined by that host's documented integration.
-
-The checked-in `.github/plugin/marketplace.json` is retained solely as GitHub
-Copilot CLI marketplace compatibility metadata. It is separate from both the
-portable skills core and Codex-specific integration, and does not redefine the
-portable manifest.
+host supplies them). Codex role definitions, profile/Jax behavior, and
+marketplace installation are client-specific integration rather than portable
+manifest fields. GitHub Copilot CLI uses `.github/plugin/marketplace.json` as
+its marketplace catalog for distributing the same root Agent Plugin.
 
 For delegated work, choose either of two global execution modes independently
 of model routing:

@@ -8,13 +8,12 @@ description: Practical routing for bounded Codex work with a focused root manage
 Iron Box is a small contract over native Codex orchestration. The root/manager
 keeps its own context focused on the user goal, constraints, decisions, TODOs,
 integration, and verified progress. It delegates bounded work, chooses the
-role, model, and reasoning effort, and keeps fresh task packets small. It does
-not add a runtime, daemon, supervisor, or mandatory review ceremony.
+role, model, and reasoning effort, and keeps fresh task packets small.
 
 ```text
 Manager / orchestration proxy
-├── Luna (Medium → Max) — normal workers and routine reviewers/verifiers
-└── Sol (Low → High) — difficult reasoning, peer consultation, escalation, architecture, high-value review
+├── gpt-5.6-luna (Medium → Max) — normal workers and routine reviewers/verifiers
+└── gpt-5.6-sol (Low → High) — difficult reasoning, peer consultation, escalation, architecture, high-value review
 ```
 
 ## Choose an execution mode
@@ -31,26 +30,15 @@ of parallel or sequential workers.
 
 **Thread mode** uses a separate or new thread as an independent worker context.
 It is useful when stronger context isolation is desirable, explicit thread
-separation fits the task, or the host/user prefers that topology. A harness may
-not expose programmatic creation or lifecycle control for top-level threads;
-Iron Box describes the handoff and integration contract but does not claim to
-create or control such threads when the capability cannot be verified.
-
-Thread mode is not a Luna fallback or workaround, and it is not inherently
-inferior to subagents. In both modes, preserve bounded scope, explicit
-ownership, a task-specific context packet, acceptance criteria, evidence and
-verification, escalation, root integration/review, and unrelated user work.
+separation fits the task, or the host/user prefers that topology.
 
 ## Route work simply
 
 Use Luna by default for bounded implementation, research, debugging, routine
-checking, and review. Current Codex installations are expected to support
-`gpt-5.6-luna` as a normal agent model; onboarding must verify the live
-capability and recommend updating Codex if it is unexpectedly unavailable.
+checking, and review.
 Use Sol when difficult reasoning, architecture, risk,
 conflicting evidence, escalation, or high-value review is worth the extra cost.
-Terra Medium is a recommended root model in onboarding/configuration; it is not
-a packaged or bootstrapped worker profile. The routing choice remains
+The routing choice remains
 independent of whether the work runs as a subagent or in a separate thread.
 Profile reasoning efforts are defaults and fallbacks, not fixed routing: choose
 the least costly effort that can reliably meet the task's confidence needs.
@@ -71,6 +59,15 @@ that is enough; fan out only disjoint work where the expected time or judgment
 benefit justifies the cost. Retry with a changed, causal packet after failure.
 Escalate an unsettled requirement, destructive action, safety issue, or
 unprovable criterion.
+
+Keep the controller stable when feedback arrives: change the smallest possible
+part of the current plan, reuse valid completed work, and steer useful active
+workers instead of cancelling them by default. One worker is the default;
+fan-out must justify its context, compute, and integration cost. Verify factual
+corrections before agreeing or rejecting them—user authority sets goals and
+preferences, not external facts. The manager may make lightweight local
+inspections when that is cheaper than delegating; substantial worker work still
+belongs in a bounded packet.
 
 ## Verification proportional to the task
 

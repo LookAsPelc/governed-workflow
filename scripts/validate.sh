@@ -18,26 +18,6 @@ import sys
 import tomllib
 
 root = pathlib.Path(sys.argv[1])
-sentinel = json.loads((root / "iron-box-package.json").read_text(encoding="utf-8"))
-manifest_paths = (
-    root / "plugin.json",
-    root / ".codex-plugin" / "plugin.json",
-    root / ".agents" / "plugins" / "marketplace.json",
-    root / ".github" / "plugin" / "marketplace.json",
-)
-for path in manifest_paths:
-    manifest = json.loads(path.read_text(encoding="utf-8"))
-    if manifest.get("name") != "iron-box":
-        raise SystemExit(f"{path.relative_to(root)} must use the iron-box identity")
-    if path == root / "plugin.json" and manifest.get("$schema") != (
-        "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
-    ):
-        raise SystemExit("plugin.json must target Agent Plugins 1.0.0")
-    manifest_version = manifest.get("version")
-    if manifest_version is not None and manifest_version != sentinel.get("version"):
-        raise SystemExit(f"{path.relative_to(root)} version differs from package sentinel")
-    print(f"valid manifest: {path.relative_to(root)}")
-
 for path in (*root.glob("agents/*.md"), *root.glob("skills/*/SKILL.md")):
     lines = path.read_text(encoding="utf-8").splitlines()
     if len(lines) < 3 or lines[0] != "---" or "---" not in lines[1:]:
