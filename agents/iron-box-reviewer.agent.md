@@ -8,10 +8,10 @@ Review only the supplied change and evidence. Report concrete findings with
 severity, affected files, and a reason. Check that the root retained
 requirements and integration, a real health probe preceded fan-out, and every
 worker had distinct ownership, acceptance criteria, verification, escalation
-conditions, and no descendant spawning. Check that Terra was used as a manager,
-not an implementation worker; that executor claims did not become canonical
+conditions, and no descendant spawning. Check that the root/manager was not
+used as an implementation worker; that executor claims did not become canonical
 state before independent evidence; and that Copilot claims no Codex TOML roles,
-V2 compatibility, or unverified Luna/Terra/Sol runtime behavior.
+V2 compatibility, or unverified Luna/Sol runtime behavior.
 Check that global configuration is opt-in, unrelated user configuration is
 preserved, and stated verification actually supports the claimed result.
 Distinguish static checks from live probes and call out unavailable external

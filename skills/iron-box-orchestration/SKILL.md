@@ -1,144 +1,77 @@
 ---
 name: iron-box-orchestration
-description: Durable, evidence-led routing for bounded Codex work with Terra, Luna, and Sol.
+description: Practical routing for bounded Codex work with a focused root manager, Luna workers, and optional Sol review.
 ---
 
 # Iron Box orchestration
 
-Iron Box is a lightweight governance layer over native Codex orchestration. It
-does not add an agent runtime, supervisor, or daemon. Terra is the root
-manager, Luna is the default execution pool, and Sol is optional expensive
-judgment.
+Iron Box is a small contract over native Codex orchestration. The root/manager
+keeps its own context focused on the user goal, constraints, decisions, TODOs,
+integration, and verified progress. It delegates bounded work, chooses the
+role, model, and reasoning effort, and keeps fresh task packets small. It does
+not add a runtime, daemon, supervisor, or mandatory review ceremony.
 
-```mermaid
-flowchart TD
-    T["Terra Medium: manager"] -->|"bounded task packet"| L["Luna Medium to Max: execute, research, debug, verify"]
-    T <-->|"fresh peer packet when justified"| S["Sol Low to High: architecture, difficult judgment, escalation"]
-    L --> C["unverified claim"]
-    C --> V["independent verification"]
-    V --> E["accepted evidence"]
-    E --> D["durable canonical state"]
-    D --> T
+```text
+Manager / orchestration proxy
+├── Luna (Medium → Max) — normal workers and routine reviewers/verifiers
+└── Sol (Low → High) — difficult reasoning, peer consultation, escalation, architecture, high-value review
 ```
 
-## Manager ownership and development gate
+## Route work simply
 
-Terra Medium owns user intent, protected constraints, Goal and TODO creation,
-decomposition, routing, task-state management, context-packet construction,
-verification decisions, integration, and user communication. Terra is not an
-implementation worker. Keep the manager context focused on contracts, settled
-decisions, accepted evidence, and next actions—not raw worker reasoning.
+Use Luna by default for bounded implementation, research, debugging, routine
+checking, and review. Use Sol when difficult reasoning, architecture, risk,
+conflicting evidence, escalation, or high-value review is worth the extra cost.
+Terra Medium is a recommended root model in onboarding/configuration; it is not
+a packaged or bootstrapped worker profile. Profile reasoning efforts are
+defaults and fallbacks, not fixed routing: choose the least costly effort that
+can reliably meet the task's confidence needs.
 
-Before development, record a Goal and a TODO list with acceptance criteria and
-the evidence needed to close each item. Ask the user for missing product intent.
-For an architecture, security, public-interface, migration, destructive, or
-otherwise one-way-door decision, use Sol as a fresh peer or obtain the user's
-decision before implementation.
+Before every spawn, visibly announce exactly:
 
-## Economic routing
+`role | model | reasoning effort | context being passed`
 
-Choose the cheapest model and reasoning effort that can reliably meet the
-required epistemic standard. Model tier is not organizational rank.
+Pass only the goal, relevant constraints and decisions, exact ownership,
+acceptance criteria, verified context, risks, and the requested report shape.
+Do not forward the whole root conversation or private reasoning. Workers do
+not spawn descendants, change unrelated files, or silently widen scope.
 
-| Route | Use when |
-| --- | --- |
-| Luna Medium | Routine bounded implementation, research, deterministic checking, or mechanical review |
-| Luna High | Non-trivial implementation, debugging, semantic review, or broader research |
-| Luna Xhigh/Max | Difficult but bounded reasoning after complexity, risk, or a prior failure justifies it |
-| Sol Low/Medium/High | Architecture peer work, ambiguous trade-offs, high-risk correctness/security, evidence conflict, repeated Luna failure, or high-value review |
+The manager applies simple economics: keep work in one bounded packet when
+that is enough; fan out only disjoint work where the expected time or judgment
+benefit justifies the cost. Retry with a changed, causal packet after failure.
+Escalate an unsettled requirement, destructive action, safety issue, or
+unprovable criterion.
 
-Do not route implementation to Terra. Do not invoke Sol mechanically for every
-review: a fresh Luna verifier is normally sufficient when deterministic evidence
-is strong. Terra chooses the worker and effort; users normally need not
-micromanage reasoning effort.
+## Verification proportional to the task
 
-## Bounded context packets and roles
+Worker report != proof. A worker reports changed files, exact commands and
+results, observations, and uncertainty; the root decides what is verified.
 
-Every worker receives only the objective, relevant protected constraints and
-settled decisions, exact ownership, acceptance criteria, relevant verified
-state/evidence, and known risks. Do not forward the whole root conversation or
-another worker's private reasoning. A worker report must identify changed files
-(if any), exact commands/results, observations, uncertainty, and status.
+For a small, clear task, deterministic evidence such as focused tests, a
+compiler/type check, a lint result, or a direct diff inspection may be enough
+to close the task. Ask a fresh Luna verifier when independent judgment adds
+value: semantic changes, non-obvious scope, conflicting evidence, or a useful
+read-only check. Ask Sol only when high-judgment review is worth its cost; Sol
+is optional and never a mandatory final gate.
 
-Use these behaviorally distinct profiles:
+Any Luna or Sol review packet should include the goal, constraints, criteria,
+declared scope, actual diff/artifacts, exact command results, deviations, and
+capability claims. The reviewer checks unmet criteria, scope creep or unrelated
+edits, needless abstractions/refactors/reinvention, excessive complexity, and
+unsupported claims. Reviewers are read-only and report PASS, REVISE, or
+BLOCKED with concrete evidence.
 
-- **Luna implementer** changes only its bounded scope and reports a claim.
-- **Luna researcher** is read-only and separates observations, hypotheses,
-  verified facts, recommendations, and uncertainty.
-- **Luna debugger** reproduces, isolates, applies the smallest justified fix,
-  and reruns the regression check.
-- **Luna verifier** is fresh and read-only; it independently tests claims and
-  does not repair while verifying.
-- **Sol advisor** is a fresh architecture peer, critic, escalation solver, or
-  high-value reviewer. It neither implements nor silently changes user intent.
+## Durable state when recovery needs it
 
-All workers preserve unrelated edits, do not spawn descendants, and escalate
-ambiguity, destructive action, execution failure, or an unprovable criterion.
+For work larger than a small self-contained edit, copy the task and state
+templates into `.iron-box/`. This directory is ignored and enables a fresh
+root to recover the goal and current work; it is not a workspace or audit
+database. Keep only the goal, important constraints, acceptance criteria,
+remaining TODOs, verified progress, important decisions, blockers, and
+uncertainty. Do not turn it into an event log, evidence archive, claim store,
+or transcript.
 
-### Context and cost discipline
-
-Before interrupting, respawning, or fanning out, Terra inspects durable state,
-active worker status, and the latest evidence. Keep an in-scope worker
-progressing when it is making progress. Interrupt only for a changed
-requirement, scope or safety violation, bounded retry failure/block, or stale
-or contradictory evidence. Never start a duplicate replacement while the
-original is active. Fan out only disjoint work with independent acceptance
-criteria and evidence, and record a concise rationale when the expected cost or
-time benefit justifies it. Reuse stable evidence and context; retries must be
-causally distinct rather than repeated blindly.
-
-## Claim -> Verify -> Commit
-
-A worker report is an untrusted claim. It never directly becomes canonical
-state. Terra records verified facts only after independent inspection.
-
-1. Luna reports an implementation or research claim with concrete locations.
-2. Terra assembles a completion packet containing the goal and protected
-   constraints, every acceptance criterion, declared scope, actual diff and
-   artifacts, exact commands and results, deviations or workarounds, and all
-   capability claims.
-3. Every claimed completion, including trivial work, receives a fresh,
-   read-only independent review. The default is a Luna verifier; Sol is used
-   only when proportional high-judgment review is warranted. Deterministic
-   reproducible evidence is decisive input, never a bypass for this fresh scope
-   review.
-4. The reviewer independently assesses (a) coverage of every criterion, (b)
-   out-of-scope files and side effects, (c) unapproved workarounds or
-   improvisation, and (d) unsupported or unobserved capability claims. PASS
-   requires all four assessments plus evidence; otherwise the completion stays
-   unverified/suspect.
-5. Terra links accepted evidence to the relevant state record and updates its
-   status. Contradicted or incomplete claims remain unverified/suspect.
-
-Evidence preference is: reproducible tests, compiler/type checker/linter,
-runtime and API observations, diffs/hashes/file contents; then independent
-fresh-agent judgment; then executor self-report. A reviewer must not override
-contradictory deterministic evidence merely because a result looks plausible.
-
-## Durable state and recovery
-
-For work that exceeds a small, self-contained change, maintain project-local
-state under `.iron-box/` using the protocol in
-[`docs/durable-task-state.md`](../../docs/durable-task-state.md). It is ignored
-by default because it is runtime task state, not project source. The immutable
-`task.json` preserves user intent; mutable `state.json` carries only structured
-records and evidence links. Do not use a growing prose summary or raw chat
-history as canonical memory.
-
-At each checkpoint, record accepted verification, pending/blocking work,
-superseded claims, and artifact fingerprints where a later change would
-invalidate evidence. A fresh Terra context resumes by reading `task.json`, then
-`state.json`, verifying any stale fingerprints, locating referenced evidence,
-and selecting the smallest next bounded action. The root can be logically
-persistent without its original conversation being physically necessary.
-
-Trivial low-risk work may use a compact packet and lightweight checks, but it
-still requires the same fresh independent completion review before Terra marks
-it complete.
-
-## Delivery
-
-The root reviews the diff and evidence, distinguishes static inspection,
-command output, and live runtime proof, and discloses unavailable dependencies.
-Present the result and unresolved uncertainty for user review before final
-cleanup or completion.
+The root reviews the final diff and evidence, distinguishes static checks from
+live runtime/UI proof, and tells the user what remains uncertain. Keep the
+workflow small enough that the next manager can understand it without the old
+conversation.

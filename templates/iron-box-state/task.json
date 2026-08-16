@@ -1,8 +1,5 @@
 {
-  "schema_version": 1,
-  "task_id": "replace-with-stable-task-id",
-  "created_at": "replace-with-ISO-8601-time",
-  "original_goal": "Replace with the user's original goal.",
+  "goal": "Replace with the user's goal.",
   "protected_constraints": [],
   "acceptance_criteria": []
 }

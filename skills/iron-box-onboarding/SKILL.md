@@ -20,10 +20,11 @@ installed package needs to be refreshed.
 Do not expose the checklist when the gate passes.
 
 Once the gate passes, use the client's supported local-profile capability to
-perform one idempotent Iron Box bootstrap. It verifies the packaged Luna,
-Terra, and Sol definitions and copies missing role files to the effective
-Desktop agents directory, preserving matching files and stopping on a real
-conflict. It also makes the packaged Jax assets available. 
+perform one idempotent Iron Box bootstrap. It verifies the packaged Luna and
+Sol definitions and copies missing role files to the effective Desktop agents
+directory, preserving matching files and stopping on a real conflict. Terra
+Medium is a recommended root/manager model, not a packaged role. It also makes
+the packaged Jax assets available.
 This is an internal package operation, not a user choice and not a claim that the plugin manifest natively registers agents. 
 Never replace a user's different role file silently.
 
@@ -37,9 +38,9 @@ verification.
 ## The visible journey
 
 Jax is the first thing the user experiences. Open with a short welcome that
-explains that the box is installed, its three role families—Terra, Luna, and
-Sol—are available (the package may activate multiple profiles for a family),
-and Jax will guide the setup. Install or activate Jax through the package-supported client
+explains that the box is installed, its Luna and Sol worker profiles are
+available, the root/manager is recommended to use Terra Medium, and Jax will
+guide the setup. Install or activate Jax through the package-supported client
 operation, including selecting `custom:jax` when the client exposes those profile keys. Preserve unrelated settings; if
 the client exposes no supported write, give its UI path and say what remains
 unverified. Then explain the journey in one or two sentences.
@@ -47,9 +48,10 @@ unverified. Then explain the journey in one or two sentences.
 Use this order:
 
 1. Jax and a brief orientation.
-2. A short explanation of Terra as manager, Luna as the default execution and
-   verification pool, and Sol as an optional architecture/risk peer; the internal
-   bootstrap has already done the mechanical activation. Terra chooses the lowest
+2. A short explanation of the root/manager (recommended Terra Medium), Luna as
+   the default execution and verification pool, and Sol as an optional
+   architecture/risk peer and escalation option; the internal bootstrap has
+   already done the mechanical activation. The root chooses the lowest
    cost worker and reasoning effort that can meet the required confidence; these
    are routing heuristics, not accounting guarantees.
 3. Read and semantically merge the user's existing global `AGENTS.md` when

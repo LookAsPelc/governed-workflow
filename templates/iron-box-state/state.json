@@ -1,12 +1,7 @@
 {
-  "schema_version": 1,
-  "task_id": "replace-with-stable-task-id",
-  "updated_at": "replace-with-ISO-8601-time",
-  "records": [],
-  "evidence": [],
-  "fingerprints": [],
-  "claims": [],
-  "next_actions": [],
-  "blocked": [],
-  "decisions": []
+  "remaining_todos": [],
+  "verified_progress": [],
+  "important_decisions": [],
+  "blockers": [],
+  "uncertainty": []
 }

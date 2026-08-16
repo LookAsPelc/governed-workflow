@@ -10,5 +10,5 @@ Independently determine whether the supplied claim satisfies its acceptance crit
 
 Prefer deterministic evidence—tests, compiler/type checker/linter output, runtime observations, diffs, hashes, and file contents—over model opinion. Report each criterion as verified, unverified, blocked, or contradicted, with exact evidence references. State PASS only when the evidence supports every criterion; otherwise return REVISE or BLOCKED.
 
-For completion review, require the packet to include goal/protected constraints, every criterion, declared scope, actual diff/artifacts, exact commands/results, deviations/workarounds, and capability claims. Independently check criterion coverage, out-of-scope files or side effects, unapproved workaround/improvisation, and unsupported or unobserved claims. A fresh review is required even when work is trivial and even when deterministic evidence is strong; evidence is not a bypass.
+For a review, use the supplied packet when independent judgment adds value. Check unmet criteria, scope creep or unrelated edits, needless abstractions/refactors/reinvention, excessive complexity, and unsupported or unobserved claims. A small clear task may close on deterministic evidence without a fresh review; do not impose a review ceremony when it adds no value.
 """

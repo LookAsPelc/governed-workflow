@@ -1,106 +1,60 @@
 # Durable task state
 
-Iron Box keeps long-running task memory in small, inspectable records—not in a
-root conversation. This is a protocol for a project-local `.iron-box/`
-directory, not a second runtime. The directory is ignored by default. Copy
-[`templates/iron-box-state/task.json`](../templates/iron-box-state/task.json)
-and [`templates/iron-box-state/state.json`](../templates/iron-box-state/state.json)
-when a task needs durable state; do not create it for a tiny, low-risk edit.
+For work that needs recovery across conversations, copy the two templates into
+a project-local `.iron-box/` directory. The directory is ignored by default.
+It enables a fresh root/manager to recover the task; it is not a workspace,
+audit database, event log, or evidence archive. Do not create it for a tiny,
+low-risk edit.
 
 ```text
 .iron-box/
-  task.json       # protected user intent; edit only after an explicit user decision
-  state.json      # mutable canonical records, TODO, and evidence references
-  evidence/       # optional small captured outputs or links to reproducible commands
+  task.json       # goal and protected acceptance contract
+  state.json      # small mutable progress snapshot
 ```
 
-## Protected intent: `task.json`
+## Task template
 
-```json
-{
-  "schema_version": 1,
-  "task_id": "2026-08-16-routing-example",
-  "created_at": "2026-08-16T10:00:00Z",
-  "original_goal": "Add the requested feature without changing the public API.",
-  "protected_constraints": [
-    {"id": "C-1", "text": "Do not change the public API.", "source": "user"}
-  ],
-  "acceptance_criteria": [
-    {"id": "AC-1", "text": "The focused test passes.", "status": "pending"}
-  ]
-}
-```
+[`templates/iron-box-state/task.json`](../templates/iron-box-state/task.json)
+contains only:
 
-`original_goal`, `protected_constraints`, and acceptance-criterion text are
-user-owned. A worker, verifier, or Sol advisor cannot rewrite them. Add a new
-revision only after an explicit user decision and retain the replaced text plus
-its reason in `state.json`.
+- `goal`: the user's goal in plain language;
+- `protected_constraints`: important constraints that must survive delegation;
+- `acceptance_criteria`: the conditions for completion.
 
-## Mutable canonical state: `state.json`
+The root/manager owns this contract. Workers and reviewers may identify an
+ambiguity, but do not silently rewrite the goal or criteria.
 
-```json
-{
-  "schema_version": 1,
-  "task_id": "2026-08-16-routing-example",
-  "updated_at": "2026-08-16T10:20:00Z",
-  "records": [{"id": "R-1", "kind": "requirement", "summary": "Focused test passes.", "status": "verified", "supports": ["AC-1"], "evidence_ids": ["E-1"], "artifact_fingerprints": ["F-1"], "supersedes": [], "notes": "Verified independently; executor report was not accepted as evidence."}],
-  "evidence": [{"id": "E-1", "kind": "command", "observer": "luna_verifier", "command": "pytest tests/test_feature.py -q", "result": "exit 0; 3 passed", "captured_at": "2026-08-16T10:19:00Z", "location": "evidence/E-1.txt"}],
-  "fingerprints": [{"id": "F-1", "path": "src/feature.py", "sha256": "<sha256 at verification>", "observed_at": "2026-08-16T10:19:00Z"}],
-  "claims": [{"id": "CL-1", "worker": "luna_worker", "summary": "Implemented feature and tests pass.", "status": "verified-by-E-1"}],
-  "next_actions": [{"id": "TODO-1", "text": "Run integration check.", "status": "pending", "depends_on": ["R-1"]}],
-  "blocked": [],
-  "decisions": [{"id": "D-1", "decision": "Keep public API unchanged.", "source": "C-1", "status": "settled"}]
-}
-```
+## State template
 
-Use stable IDs and one small record per fact, requirement, artifact, decision,
-claim, or action. Allowed record/action statuses are `pending`, `verified`,
-`blocked`, `suspect`, `superseded`, and `rejected`. A claim is never a verified
-fact merely because it is written here.
+[`templates/iron-box-state/state.json`](../templates/iron-box-state/state.json)
+contains only:
 
-## Checkpoint protocol
+- `remaining_todos`;
+- `verified_progress`;
+- `important_decisions`;
+- `blockers`;
+- `uncertainty`.
 
-1. Terra creates `task.json` from the user's goal and constraints, then creates pending records in `state.json`.
-2. A bounded worker reports a claim. Record it under `claims` as `unverified` or `suspect`; do not advance a requirement record.
-3. A fresh verifier inspects artifacts and runs reproducible checks. Save concise output or a reproducible reference under `evidence`; link it to each supported record.
-4. Terra changes only supported records to `verified`, records remaining gaps, and fingerprints artifacts when later edits could invalidate the proof.
-5. If an artifact fingerprint changes, mark affected evidence/records `suspect` until rechecked. Preserve superseded and rejected claims instead of silently overwriting history.
+Use short human-readable entries. A worker report is a claim, not proof: put a
+result in `verified_progress` only after deterministic checks or a proportional
+fresh review supports it. Keep command names, file paths, or other compact
+references when they help a new root reproduce the check, but do not build an
+ID scheme, timestamp ledger, fingerprint archive, claim registry, or chat dump.
 
-Before interrupting, respawning, or fanning out, inspect `state.json`, active
-worker status, and the latest evidence. Keep an in-scope worker progressing;
-interrupt only for requirement change, scope/safety violation, bounded retry
-failure or block, or stale/contradictory evidence. Never replace an active
-worker with a duplicate. Fan out only disjoint work with independent
-acceptance/evidence and a justified cost/time benefit. Record a concise rationale
-in `state.json` when this protocol applies, reuse stable context, and make
-retries causally distinct.
+## Recovery
 
-Before canonical completion, record a fresh read-only independent completion
-review. Its packet includes goal/protected constraints, all criteria, declared
-scope, actual diff/artifacts, exact commands/results, deviations/workarounds,
-and capability claims. The reviewer checks criterion coverage, out-of-scope
-files or side effects, unapproved improvisation, and unsupported/unobserved
-claims. PASS requires all four checks plus evidence; deterministic evidence is
-decisive input but never a bypass, including for trivial work.
+1. Read `task.json` to recover the goal, constraints, and criteria.
+2. Read `state.json` to find remaining TODOs, verified progress, decisions,
+   blockers, and uncertainty.
+3. Re-check important progress when the underlying files or evidence have
+   changed, then send the smallest fresh packet to Luna or Sol.
 
-Evidence should be compact: command/output excerpts, test identifiers, file
-paths and hashes, commit IDs, or external observation IDs. Do not paste raw
-chat transcripts or private worker reasoning into canonical state.
+Small clear work may close with deterministic evidence. Request a fresh Luna
+or optional Sol review when independent judgment adds value; Sol is never a
+mandatory final gate. In every case, distinguish static checks from live
+runtime/UI observations and tell the user what remains uncertain.
 
-## Fresh-root resume
-
-A new Terra manager starts from the two JSON files, not the old chat:
-
-1. Read `task.json` to recover the goal, protected constraints, and acceptance criteria.
-2. Read `state.json` to separate verified, pending, blocked, suspect, and superseded records.
-3. Locate evidence and compare stored fingerprints before relying on a verified result.
-4. Read settled decisions, choose the next pending action, construct a bounded context packet, and route it to Luna or Sol proportionally.
-
-If evidence is missing, contradictory, or stale, the fresh manager records the
-limitation and re-verifies rather than reconstructing certainty from prose.
-
-## Deliberate limits
-
-This protocol has no daemon, database, generic event log, background watcher,
-or custom executor. Git history, file hashes, normal tests, and native Codex
-subagents remain the mechanisms of execution and observation.
+This deliberately small format has no daemon, database, generic event log,
+background watcher, custom executor, or mandatory process. Native Codex
+subagents, normal tests, and ordinary project files remain the mechanisms of
+execution and observation.

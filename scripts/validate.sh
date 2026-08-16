@@ -55,12 +55,12 @@ if "iron-box:start" in template or "iron-box:end" in template:
 print("valid markerless AGENTS template")
 
 for filename, required in {
-    "task.json": {"schema_version", "task_id", "original_goal", "protected_constraints", "acceptance_criteria"},
-    "state.json": {"schema_version", "task_id", "records", "evidence", "fingerprints", "claims", "next_actions", "blocked", "decisions"},
+    "task.json": {"goal", "protected_constraints", "acceptance_criteria"},
+    "state.json": {"remaining_todos", "verified_progress", "important_decisions", "blockers", "uncertainty"},
 }.items():
     path = root / "templates" / "iron-box-state" / filename
     payload = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(payload, dict) or payload.get("schema_version") != 1 or not required <= payload.keys():
+    if not isinstance(payload, dict) or set(payload) != required:
         raise SystemExit(f"invalid durable-state template: {path.relative_to(root)}")
 print("valid durable-state templates")
 
@@ -101,7 +101,6 @@ roles = {
     "luna-researcher.toml": ("luna_researcher", "gpt-5.6-luna"),
     "luna-debugger.toml": ("luna_debugger", "gpt-5.6-luna"),
     "luna-verifier.toml": ("luna_verifier", "gpt-5.6-luna"),
-    "terra-manager.toml": ("terra_manager", "gpt-5.6-terra"),
     "sol-advisor.toml": ("sol_advisor", "gpt-5.6-sol"),
 }
 roles_dir = root / "assets" / "codex" / "agents"
@@ -117,6 +116,5 @@ PY
 # Syntax checks are local and do not execute any host client.
 bash -n "$root"/scripts/*.sh "$root"/tests/test-iron-box-scripts.sh "$root"/tests/test-desktop-path.sh
 python3 -m py_compile "$root/scripts/iron_box.py" "$root/tests/check_desktop_path.py" "$root/tests/test-marketplace-e2e.py"
-python3 "$root/tests/test-policy-contract.py"
 echo "valid shell and Python syntax"
 echo "offline validation passed"

@@ -3,9 +3,9 @@
 ![Iron Box](assets/app-icon.png)
 
 Iron Box is a lightweight, user-owned governance workflow for Codex Desktop.
-It keeps a Terra manager focused on intent, routing, evidence, and recoverable
-task state; sends bounded work to Luna; and uses Sol only when stronger
-judgment earns its cost. Jax guides the initial setup.
+It keeps a root/manager focused on intent, routing, and recoverable task state;
+sends bounded work to Luna; and uses Sol only when stronger judgment earns its
+cost. Jax guides the initial setup.
 
 ## For the installation agent
 
@@ -22,7 +22,7 @@ it, then continue with onboarding.
 
 Iron Box gives Codex a simple division of work:
 
-- **Terra Medium** — the user-facing manager: intent, routing, durable state,
+- **Root/manager (recommended Terra Medium)** — intent, routing, durable state,
   verification decisions, integration, and communication;
 - **Luna Medium–Max** — the default worker pool: implementation, research,
   debugging, independent verification, and bounded critique;
@@ -30,25 +30,18 @@ Iron Box gives Codex a simple division of work:
   escalation solver, or high-value reviewer; and
 - **Jax** — explains the setup and guides you through the choices.
 
-Terra does not delegate implementation to itself. Worker reports remain claims
-until a fresh independent completion review accepts a packet containing the
-goal, constraints, criteria, scope, diff/artifacts, exact command results,
-deviations, and capability claims. The reviewer checks criterion coverage,
-out-of-scope effects, unapproved improvisation, and unsupported claims; strong
-reproducible evidence informs but never bypasses that review, including for
-trivial work. Terra then records the result in small project-local state files.
-This lets a new Terra context resume a long task without treating an old chat as
-authoritative memory. See [durable task state](docs/durable-task-state.md) and the
-[orchestration contract](skills/iron-box-orchestration/SKILL.md).
+The root chooses the cheapest reliable route, keeps worker packets small, and
+treats worker reports as claims rather than proof. Deterministic evidence may
+close a small clear task; a fresh Luna or optional Sol review is used when
+independent judgment adds value. See [durable task state](docs/durable-task-state.md)
+and the [orchestration contract](skills/iron-box-orchestration/SKILL.md).
 
-For context and cost discipline, inspect durable state, active status, and
-latest evidence before interrupting, respawning, or fanning out. Keep a
-progressing in-scope worker, avoid duplicate replacements, fan out only
-disjoint work with independent evidence and a justified cost/time benefit, and
-record concise rationale for those decisions.
+For context and cost discipline, keep the root context focused, delegate
+bounded work, and fan out only disjoint work whose expected benefit justifies
+the cost.
 
 Installation is not the complete setup. Onboarding verifies the package,
-activates the packaged roles and Jax through the supported client capability,
+activates the packaged Luna/Sol roles and Jax through the supported client capability,
 and tells you what was actually verified. It also explains relevant settings
 and recommended integrations before asking whether you want to install or
 activate them. You do not need to know what to ask for or how the pieces fit

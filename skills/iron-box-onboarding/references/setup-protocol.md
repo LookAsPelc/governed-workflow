@@ -19,9 +19,11 @@ operation; select `custom:jax` and the packaged display size through the same
 supported profile capability when available. Then guide the user through this
 sequence:
 
-1. Orientation: Terra manages intent, routing, and durable state; Luna performs
-   normal execution and independent verification; Sol is a proportional peer for
-   difficult architecture, uncertainty, and high-value review.
+1. Orientation: the root/manager (recommended Terra Medium) manages intent,
+   routing, and durable state; Luna performs normal execution and independent
+   verification; Sol is a proportional peer for difficult architecture,
+   uncertainty, escalation, and high-value review. Terra is not a packaged
+   worker profile.
 2. Global guidance: inspect the user's `AGENTS.md` and merge Iron Box advice
    into the document's existing structure. This is semantic editing owned by
    the agent. Do not append a marker block, duplicate a section, or ask the

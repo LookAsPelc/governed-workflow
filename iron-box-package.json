@@ -23,7 +23,6 @@
     "assets/codex/agents/luna-researcher.toml",
     "assets/codex/agents/luna-debugger.toml",
     "assets/codex/agents/luna-verifier.toml",
-    "assets/codex/agents/terra-manager.toml",
     "assets/codex/agents/sol-advisor.toml",
     "assets/pets/jax/pet.json",
     "assets/pets/jax/spritesheet.webp"
