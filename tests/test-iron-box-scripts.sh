@@ -31,6 +31,78 @@ grep -Fq 'package integrity: valid' "$tmp/runtime.out" || fail 'runtime validati
 grep -Fq 'package integrity: valid' "$tmp/development.out" || fail 'development validation did not pass'
 same "$root/iron-box-package.json" "$before"
 
+# The root manifest is the portable Agent Plugins 1.0 contract.  Client
+# compatibility manifests remain separate and must not leak client-only fields
+# such as agents/skills into the portable shape.
+python3 - "$root" <<'PY'
+import json
+import pathlib
+import sys
+
+root = pathlib.Path(sys.argv[1])
+portable = json.loads((root / "plugin.json").read_text(encoding="utf-8"))
+assert portable["$schema"] == "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
+assert portable["name"] == "iron-box" and portable["version"] == "0.3.0"
+assert not {"agents", "skills", "category"}.intersection(portable)
+assert "plugin.json" in json.loads(
+    (root / "iron-box-package.json").read_text(encoding="utf-8")
+)["runtimeRequired"]
+assert ".github/plugin/marketplace.json" in json.loads(
+    (root / "iron-box-package.json").read_text(encoding="utf-8")
+)["runtimeRequired"]
+PY
+
+# Stale Luna catalog or index mutation and Luna-only thread fallback wording must
+# not return to tracked policy, docs, or executable files.  Thread mode is a
+# global topology; the Codex role assets remain ordinary gpt-5.6-luna roles.
+python3 - "$root" <<'PY'
+import json
+import pathlib
+import subprocess
+import sys
+import tomllib
+
+root = pathlib.Path(sys.argv[1])
+tracked = subprocess.check_output(
+    ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
+    cwd=root,
+    text=True,
+).splitlines()
+patterns = (
+    "Luna catalog " + "compatibility",
+    "V1/V2 " + "catalog",
+    "catalog " + "copy",
+    "model " + "catalog",
+    "model " + "index",
+    "Luna's preferred route is a new " + "thread",
+    "For Luna's " + "route",
+    "catalog/" + "index",
+)
+for relative in tracked:
+    if relative.startswith("temp/"):
+        continue
+    path = root / relative
+    if path.suffix.lower() not in {".md", ".py", ".sh", ".toml", ".json", ".yml", ".yaml"}:
+        continue
+    text = path.read_text(encoding="utf-8", errors="replace").casefold()
+    for pattern in patterns:
+        if pattern.casefold() in text:
+            raise SystemExit(f"stale Luna/catalog wording in {relative}: {pattern}")
+
+roles = {
+    "luna-worker.toml": "luna_worker",
+    "luna-researcher.toml": "luna_researcher",
+    "luna-debugger.toml": "luna_debugger",
+    "luna-verifier.toml": "luna_verifier",
+}
+for filename, expected_name in roles.items():
+    path = root / "assets" / "codex" / "agents" / filename
+    with path.open("rb") as handle:
+        role = tomllib.load(handle)
+    assert role["name"] == expected_name
+    assert role["model"] == "gpt-5.6-luna"
+PY
+
 # The checker exposes validation plus one bounded package bootstrap. It never
 # retains the old installer/status entry points or AGENTS marker patcher.
 if python3 "$root/scripts/iron_box.py" status >"$tmp/status.out" 2>&1; then
@@ -126,6 +198,22 @@ data["version"] = "9.9.9"
 path.write_text(json.dumps(data))
 PY
 expect_invalid "$tmp/wrong-version"
+
+python3 - "$root" "$tmp/invalid-portable" <<'PY'
+import json
+import pathlib
+import shutil
+import sys
+
+root = pathlib.Path(sys.argv[1])
+target = pathlib.Path(sys.argv[2])
+shutil.copytree(root, target, symlinks=True)
+path = target / "plugin.json"
+data = json.loads(path.read_text(encoding="utf-8"))
+data["agents"] = "agents/"
+path.write_text(json.dumps(data))
+PY
+expect_invalid "$tmp/invalid-portable"
 
 python3 - "$root" "$tmp/traversal" <<'PY'
 import json

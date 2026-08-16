@@ -3,9 +3,11 @@
   "name": "iron-box",
   "version": "0.3.0",
   "runtimeRequired": [
+    "plugin.json",
     "iron-box-package.json",
     ".codex-plugin/plugin.json",
     ".agents/plugins/marketplace.json",
+    ".github/plugin/marketplace.json",
     "skills/iron-box-onboarding/SKILL.md",
     "skills/iron-box-onboarding/agents/openai.yaml",
     "skills/iron-box-onboarding/references/integrity-gate.md",

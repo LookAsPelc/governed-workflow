@@ -17,24 +17,54 @@ Manager / orchestration proxy
 └── Sol (Low → High) — difficult reasoning, peer consultation, escalation, architecture, high-value review
 ```
 
+## Choose an execution mode
+
+Model routing and execution topology are separate decisions. For each bounded
+work item, choose one of these global modes and apply the same governance
+contract to it.
+
+**Subagent mode** uses the host's supported multi-agent/subagent capability.
+The root can directly spawn delegated workers, collect their reports, wait for
+completion, and control their lifecycle when those operations are exposed by
+the running host. This is a good fit when the root needs direct orchestration
+of parallel or sequential workers.
+
+**Thread mode** uses a separate or new thread as an independent worker context.
+It is useful when stronger context isolation is desirable, explicit thread
+separation fits the task, or the host/user prefers that topology. A harness may
+not expose programmatic creation or lifecycle control for top-level threads;
+Iron Box describes the handoff and integration contract but does not claim to
+create or control such threads when the capability cannot be verified.
+
+Thread mode is not a Luna fallback or workaround, and it is not inherently
+inferior to subagents. In both modes, preserve bounded scope, explicit
+ownership, a task-specific context packet, acceptance criteria, evidence and
+verification, escalation, root integration/review, and unrelated user work.
+
 ## Route work simply
 
 Use Luna by default for bounded implementation, research, debugging, routine
-checking, and review. Use Sol when difficult reasoning, architecture, risk,
+checking, and review. Current Codex installations are expected to support
+`gpt-5.6-luna` as a normal agent model; onboarding must verify the live
+capability and recommend updating Codex if it is unexpectedly unavailable.
+Use Sol when difficult reasoning, architecture, risk,
 conflicting evidence, escalation, or high-value review is worth the extra cost.
 Terra Medium is a recommended root model in onboarding/configuration; it is not
-a packaged or bootstrapped worker profile. Profile reasoning efforts are
-defaults and fallbacks, not fixed routing: choose the least costly effort that
-can reliably meet the task's confidence needs.
+a packaged or bootstrapped worker profile. The routing choice remains
+independent of whether the work runs as a subagent or in a separate thread.
+Profile reasoning efforts are defaults and fallbacks, not fixed routing: choose
+the least costly effort that can reliably meet the task's confidence needs.
 
-Before every spawn, visibly announce exactly:
+Before every delegated worker start, visibly announce exactly:
 
-`role | model | reasoning effort | context being passed`
+`execution mode | role | model | reasoning effort | context being passed`
 
 Pass only the goal, relevant constraints and decisions, exact ownership,
 acceptance criteria, verified context, risks, and the requested report shape.
-Do not forward the whole root conversation or private reasoning. Workers do
-not spawn descendants, change unrelated files, or silently widen scope.
+Do not forward the whole root conversation or private reasoning. Delegated
+workers do not spawn descendants, change unrelated files, or silently widen
+scope. In thread mode, the host or user creates the separate top-level thread
+when supported; the root supplies the packet and later integrates the result.
 
 The manager applies simple economics: keep work in one bounded packet when
 that is enough; fan out only disjoint work where the expected time or judgment

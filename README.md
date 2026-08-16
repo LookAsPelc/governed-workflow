@@ -2,10 +2,14 @@
 
 ![Iron Box](assets/app-icon.png)
 
-Iron Box is a lightweight, user-owned governance workflow for Codex Desktop.
-It keeps a root/manager focused on intent, routing, and recoverable task state;
-sends bounded work to Luna; and uses Sol only when stronger judgment earns its
-cost. Jax guides the initial setup.
+Iron Box is an Agent Plugin with a portable, skills-based core and
+Codex-specific integration where the portable standard does not define a
+client behavior. The core is user-owned governance for bounded work; the
+Codex layer provisions agent role files, onboarding/profile support, and Jax
+where the running client supports those operations. Iron Box keeps a
+root/manager focused on intent, routing, and recoverable task state; sends
+bounded work to Luna; and uses Sol only when stronger judgment earns its cost.
+Jax guides the initial setup.
 
 ## For the installation agent
 
@@ -30,6 +34,33 @@ Iron Box gives Codex a simple division of work:
   escalation solver, or high-value reviewer; and
 - **Jax** — explains the setup and guides you through the choices.
 
+The portable package is centered on Agent Skills (and MCP integrations when a
+host supplies them). Codex agent role definitions, profile/Jax behavior, and
+marketplace installation are client-specific integration; they are not
+portable Agent Plugins fields. A host that supports the Agent Plugins standard
+can consume the skills package, but its installation and runtime behavior are
+determined by that host's documented integration.
+
+The checked-in `.github/plugin/marketplace.json` is retained solely as GitHub
+Copilot CLI marketplace compatibility metadata. It is separate from both the
+portable skills core and Codex-specific integration, and does not redefine the
+portable manifest.
+
+For delegated work, choose either of two global execution modes independently
+of model routing:
+
+- **Subagent mode** — use the host's native multi-agent capability so the root
+  can spawn workers, collect reports, wait, and manage lifecycle where exposed;
+  or
+- **Thread mode** — use a separate/new thread as an independent context when
+  stronger isolation or explicit separation is useful. Iron Box does not claim
+  programmatic creation or control of top-level threads unless the running host
+  documents and exposes it.
+
+Both modes use the same bounded scope, ownership, context-packet, acceptance,
+evidence, escalation, integration/review, and unrelated-work preservation
+contract. Thread mode is an alternative topology, not a Luna fallback.
+
 The root chooses the cheapest reliable route, keeps worker packets small, and
 treats worker reports as claims rather than proof. Deterministic evidence may
 close a small clear task; a fresh Luna or optional Sol review is used when
@@ -41,11 +72,14 @@ bounded work, and fan out only disjoint work whose expected benefit justifies
 the cost.
 
 Installation is not the complete setup. Onboarding verifies the package,
-activates the packaged Luna/Sol roles and Jax through the supported client capability,
-and tells you what was actually verified. It also explains relevant settings
-and recommended integrations before asking whether you want to install or
-activate them. You do not need to know what to ask for or how the pieces fit
-together.
+activates the packaged Luna/Sol roles and Jax through the supported client
+capability, and checks whether the running Codex installation actually exposes
+the expected Luna agent configuration. A static role file is not proof of live
+availability; if Luna is unexpectedly unavailable, onboarding diagnoses
+whether Codex is outdated, recommends an update when appropriate, and reports
+what could and could not be verified. It also explains relevant settings and
+recommended integrations before asking whether you want to install or activate
+them. You do not need to know what to ask for or how the pieces fit together.
 
 ## Install through an agent
 

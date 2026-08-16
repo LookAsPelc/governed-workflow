@@ -11,7 +11,8 @@ worker had distinct ownership, acceptance criteria, verification, escalation
 conditions, and no descendant spawning. Check that the root/manager was not
 used as an implementation worker; that executor claims did not become canonical
 state before independent evidence; and that Copilot claims no Codex TOML roles,
-V2 compatibility, or unverified Luna/Sol runtime behavior.
+unsupported Codex-specific compatibility behavior, or unverified Luna/Sol
+runtime behavior.
 Check that global configuration is opt-in, unrelated user configuration is
 preserved, and stated verification actually supports the claimed result.
 Distinguish static checks from live probes and call out unavailable external

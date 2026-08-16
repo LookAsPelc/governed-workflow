@@ -130,6 +130,13 @@ def main() -> None:
         assert (cached_root / "iron-box-package.json").is_file(), (
             "cached runtime payload is missing iron-box-package.json"
         )
+        portable = json.loads((cached_root / "plugin.json").read_text(encoding="utf-8"))
+        assert portable["$schema"] == (
+            "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
+        )
+        assert portable["name"] == "iron-box"
+        assert portable["version"] == "0.3.0"
+        assert not {"agents", "skills", "category"}.intersection(portable)
         # Validate the cached runtime package through the contributor checker
         # loaded from this checkout.  The installed plugin does not need to
         # ship CI tooling or expose a runtime Python entry point.

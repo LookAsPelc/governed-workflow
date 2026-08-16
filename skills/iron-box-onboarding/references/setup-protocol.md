@@ -11,8 +11,9 @@ The package gate and internal role bootstrap happen before the first visible
 reply. They verify the packaged role definitions, copy only missing files, and
 roll back newly created files if a write fails. Existing matching files are
 left alone; a different existing role is a real conflict to explain, not a
-reason to overwrite it. The plugin manifest currently exposes skills, not a
-native `agents` payload, so never claim otherwise.
+reason to overwrite it. The portable manifest packages the skills-based core.
+Codex-specific role provisioning is a separate integration layer, so never
+present those roles as a portable Agent Plugins field.
 
 Jax is installed/activated first through the package-supported client
 operation; select `custom:jax` and the packaged display size through the same
@@ -42,7 +43,12 @@ sequence:
    may cover safe local changes; GUI login or external authorization remains a
    direct user action.
 6. Live test: run the smallest useful multi-agent check and distinguish static
-   asset presence from a live client probe.
+   asset presence from a live client probe. Confirm that the running Codex
+   installation exposes the expected Luna agent configuration when the host
+   supports model-selectable subagents. If it does not, diagnose whether the
+   installation is outdated, recommend a Codex update when appropriate, and
+   report the limitation plainly. A missing live capability is not a reason to
+   mutate internal model-selection state.
 
 A single consent may cover a bounded group of safe, reversible local changes
 and recommended integrations that use that same local installation path. Ask
@@ -65,14 +71,29 @@ Batch safe work the client can perform. If a supported write is unavailable,
 say exactly what could not be verified and provide the official UI route; never
 pretend a shell copy changed the Desktop profile.
 
-## Luna catalog compatibility
+## Execution mode
 
-Luna's preferred route is a new thread. If the running client exposes a
-documented V1/V2 catalog compatibility issue, explain the global effect before
-offering the dedicated catalog copy and restart. Change only the Luna version
-field, preserve all other entries, and claim success only after the documented
-live probe. If the user declines, record that orchestration remains incomplete
-and offer to resume later. If the client already exposes V2, do nothing.
+Choose the execution topology independently from the Luna/Terra/Sol routing
+decision. Iron Box supports two general modes:
+
+**Subagent mode** uses the host's supported multi-agent capability. The root
+agent spawns bounded workers, collects their reports, waits for completion, and
+controls their lifecycle wherever the running host exposes those operations.
+Use it when direct orchestration and shared task progress are useful.
+
+**Thread mode** uses a separate or new thread as an independent worker context.
+Use it when stronger context isolation is useful, explicit thread separation
+fits the task, or the host/user prefers that topology. The current harness may
+not expose programmatic creation or lifecycle control for top-level threads;
+Iron Box must not claim those operations. The host or user opens the thread,
+then the root hands over a bounded context packet and integrates the resulting
+artifacts or report.
+
+Thread mode is not a Luna fallback or workaround, and neither mode is
+inherently superior. Both modes use the same governance contract: bounded
+scope, explicit ownership, a task-specific context packet, acceptance
+criteria, evidence and verification, escalation, root integration and review,
+and preservation of unrelated work.
 
 ## Recovery and reporting
 

@@ -1,11 +1,11 @@
 {
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "iron-box",
   "version": "0.3.0",
-  "description": "A user-owned Iron Box workflow for Codex and GitHub Copilot CLI.",
+  "description": "Portable governed skills for bounded agent work.",
   "author": {"name": "Lukáš Pelc", "email": "pelc.it@gmail.com"},
+  "homepage": "https://github.com/LookAsPelc/governed-workflow",
+  "repository": "https://github.com/LookAsPelc/governed-workflow",
   "license": "MIT",
-  "keywords": ["codex", "copilot", "agent", "orchestration", "workflow"],
-  "category": "Developer Tools",
-  "agents": "agents/",
-  "skills": "skills/"
+  "keywords": ["agent", "orchestration", "workflow"]
 }

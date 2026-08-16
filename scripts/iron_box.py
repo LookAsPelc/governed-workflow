@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import tempfile
 from pathlib import Path
@@ -21,10 +22,25 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parent.parent
+AGENT_PLUGINS_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
+PORTABLE_MANIFEST_FIELDS = {
+    "$schema",
+    "name",
+    "version",
+    "description",
+    "author",
+    "homepage",
+    "repository",
+    "license",
+    "keywords",
+    "extensions",
+}
+PORTABLE_NAME = re.compile(r"^(?!.*(?:--|\.\.))[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$")
 
-# These files are package-supported bootstrap payloads.  The current plugin
-# manifest does not have an ``agents`` field, so the host must make these
-# definitions available through one bounded, idempotent activation operation.
+# These files are Codex-specific provisioning payloads kept beside the
+# portable Agent Plugins core.  The portable manifest intentionally does not
+# expose client agents; Codex makes these definitions available through one
+# bounded, idempotent activation operation.
 BOOTSTRAP_FILES = (
     ("assets/codex/agents/luna-worker.toml", "agents/luna-worker.toml"),
     ("assets/codex/agents/luna-researcher.toml", "agents/luna-researcher.toml"),
@@ -71,6 +87,60 @@ def regular_target(path: Path, *, allow_missing: bool = True) -> None:
         raise SystemExit(f"file not found: {path}")
 
 
+def validate_portable_manifest(manifest: Any, *, expected_name: str, expected_version: str) -> None:
+    """Validate the closed Agent Plugins 1.0 root manifest offline.
+
+    The published schema is authoritative, but package validation deliberately
+    stays deterministic and offline.  This focused check mirrors the schema's
+    field/type constraints and the package identity/version contract without
+    downloading a schema at runtime.
+    """
+    if not isinstance(manifest, dict):
+        raise SystemExit("portable plugin.json must contain an object")
+    unknown = set(manifest) - PORTABLE_MANIFEST_FIELDS
+    if unknown:
+        raise SystemExit(
+            "portable plugin.json contains unsupported fields: "
+            f"{sorted(unknown)}"
+        )
+    if manifest.get("$schema") != AGENT_PLUGINS_SCHEMA:
+        raise SystemExit("portable plugin.json must target Agent Plugins 1.0.0")
+    name = manifest.get("name")
+    if (
+        not isinstance(name, str)
+        or not 1 <= len(name) <= 64
+        or PORTABLE_NAME.fullmatch(name) is None
+    ):
+        raise SystemExit("portable plugin.json has an invalid name")
+    if name != expected_name:
+        raise SystemExit("portable plugin.json identity mismatch")
+    version = manifest.get("version")
+    if not isinstance(version, str) or not version:
+        raise SystemExit("portable plugin.json must declare a version")
+    if version != expected_version:
+        raise SystemExit("portable plugin.json version mismatch")
+    for field in ("description", "homepage", "repository", "license"):
+        if field in manifest and not isinstance(manifest[field], str):
+            raise SystemExit(f"portable plugin.json field must be a string: {field}")
+    author = manifest.get("author")
+    if author is not None:
+        if not isinstance(author, dict) or set(author) - {"name", "email", "url"}:
+            raise SystemExit("portable plugin.json author must be a known-field object")
+        if any(not isinstance(value, str) for value in author.values()):
+            raise SystemExit("portable plugin.json author values must be strings")
+    keywords = manifest.get("keywords")
+    if keywords is not None and (
+        not isinstance(keywords, list) or any(not isinstance(item, str) for item in keywords)
+    ):
+        raise SystemExit("portable plugin.json keywords must be an array of strings")
+    extensions = manifest.get("extensions")
+    if extensions is not None and (
+        not isinstance(extensions, dict)
+        or any(not isinstance(value, dict) for value in extensions.values())
+    ):
+        raise SystemExit("portable plugin.json extensions must map names to objects")
+
+
 def validate_package(
     package_root: Path = ROOT, *, require_development: bool = False
 ) -> dict[str, tuple[str, ...]]:
@@ -101,12 +171,25 @@ def validate_package(
         )
 
     expected_version = payload["version"]
-    # Iron Box currently targets Codex Desktop.  Validate only the Codex plugin
-    # manifest and its local marketplace entry; legacy Copilot manifests are
-    # intentionally not part of the package contract.
+    # The root manifest is the portable Agent Plugins contract.  The remaining
+    # manifests are client/distribution compatibility layers and are checked
+    # separately below; they do not replace or augment portable fields.
+    portable_path = package_root / "plugin.json"
+    regular_target(portable_path, allow_missing=False)
+    try:
+        portable = json.loads(portable_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise SystemExit(f"invalid portable manifest plugin.json: {exc}") from exc
+    validate_portable_manifest(
+        portable, expected_name=payload["name"], expected_version=expected_version
+    )
+
+    # Iron Box currently targets Codex Desktop.  Validate the Codex plugin
+    # manifest and local marketplace entry; these remain client-specific.
     manifest_paths = (
         ".codex-plugin/plugin.json",
         ".agents/plugins/marketplace.json",
+        ".github/plugin/marketplace.json",
     )
     for manifest_name in manifest_paths:
         manifest_path = package_root / manifest_name
