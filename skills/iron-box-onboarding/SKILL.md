@@ -37,8 +37,9 @@ verification.
 ## The visible journey
 
 Jax is the first thing the user experiences. Open with a short welcome that
-explains that the box is installed, its three workers are inside, and Jax will
-guide the setup. Install or activate Jax through the package-supported client
+explains that the box is installed, its three role families—Terra, Luna, and
+Sol—are available (the package may activate multiple profiles for a family),
+and Jax will guide the setup. Install or activate Jax through the package-supported client
 operation, including selecting `custom:jax` when the client exposes those profile keys. Preserve unrelated settings; if
 the client exposes no supported write, give its UI path and say what remains
 unverified. Then explain the journey in one or two sentences.
@@ -46,12 +47,11 @@ unverified. Then explain the journey in one or two sentences.
 Use this order:
 
 1. Jax and a brief orientation.
-2. A short explanation of Luna (most of the work), Terra (local judgment),
-   and Sol (risk and evidence review, escalation); the internal bootstrap has already done
-   the mechanical activation. Luna is roughly 10x cheaper than Terra and 25x cheaper
-   than Sol, so she is the sensible first attempt; use a more expensive model when
-   the task needs greater judgment or carries more risk. These are routing heuristics,
-   not accounting guarantees.
+2. A short explanation of Terra as manager, Luna as the default execution and
+   verification pool, and Sol as an optional architecture/risk peer; the internal
+   bootstrap has already done the mechanical activation. Terra chooses the lowest
+   cost worker and reasoning effort that can meet the required confidence; these
+   are routing heuristics, not accounting guarantees.
 3. Read and semantically merge the user's existing global `AGENTS.md` when
    they want Iron Box guidance. Preserve their intent and wording where it is
    sound, deduplicate overlapping rules, and explain genuine conflicts. Write

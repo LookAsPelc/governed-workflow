@@ -27,7 +27,10 @@ ROOT = Path(__file__).resolve().parent.parent
 # definitions available through one bounded, idempotent activation operation.
 BOOTSTRAP_FILES = (
     ("assets/codex/agents/luna-worker.toml", "agents/luna-worker.toml"),
-    ("assets/codex/agents/terra-worker.toml", "agents/terra-worker.toml"),
+    ("assets/codex/agents/luna-researcher.toml", "agents/luna-researcher.toml"),
+    ("assets/codex/agents/luna-debugger.toml", "agents/luna-debugger.toml"),
+    ("assets/codex/agents/luna-verifier.toml", "agents/luna-verifier.toml"),
+    ("assets/codex/agents/terra-manager.toml", "agents/terra-manager.toml"),
     ("assets/codex/agents/sol-advisor.toml", "agents/sol-advisor.toml"),
     ("assets/pets/jax/pet.json", "pets/jax/pet.json"),
     ("assets/pets/jax/spritesheet.webp", "pets/jax/spritesheet.webp"),

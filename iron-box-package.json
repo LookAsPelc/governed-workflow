@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "name": "iron-box",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "runtimeRequired": [
     "iron-box-package.json",
     ".codex-plugin/plugin.json",
@@ -12,12 +12,18 @@
     "skills/iron-box-onboarding/references/jax-lore.md",
     "skills/iron-box-onboarding/references/setup-protocol.md",
     "skills/iron-box-orchestration/SKILL.md",
+    "docs/durable-task-state.md",
+    "templates/iron-box-state/task.json",
+    "templates/iron-box-state/state.json",
     "scripts/iron_box.py",
     "templates/AGENTS.global.recommended.md",
     "templates/codex-desktop.recommended.toml",
     "assets/app-icon.png",
     "assets/codex/agents/luna-worker.toml",
-    "assets/codex/agents/terra-worker.toml",
+    "assets/codex/agents/luna-researcher.toml",
+    "assets/codex/agents/luna-debugger.toml",
+    "assets/codex/agents/luna-verifier.toml",
+    "assets/codex/agents/terra-manager.toml",
     "assets/codex/agents/sol-advisor.toml",
     "assets/pets/jax/pet.json",
     "assets/pets/jax/spritesheet.webp"

@@ -2,9 +2,10 @@
 
 ![Iron Box](assets/app-icon.png)
 
-Iron Box is a guided workflow for Codex Desktop. It helps the user set up and
-use three cooperating workers—Luna, Terra, and Sol—with Jax as the onboarding
-guide.
+Iron Box is a lightweight, user-owned governance workflow for Codex Desktop.
+It keeps a Terra manager focused on intent, routing, evidence, and recoverable
+task state; sends bounded work to Luna; and uses Sol only when stronger
+judgment earns its cost. Jax guides the initial setup.
 
 ## For the installation agent
 
@@ -21,10 +22,30 @@ it, then continue with onboarding.
 
 Iron Box gives Codex a simple division of work:
 
-- **Luna** — the economical first worker for routine, bounded tasks;
-- **Terra** — implementation and local judgment when a task needs escalation;
-- **Sol** — review of architecture, risk, and evidence; and
+- **Terra Medium** — the user-facing manager: intent, routing, durable state,
+  verification decisions, integration, and communication;
+- **Luna Medium–Max** — the default worker pool: implementation, research,
+  debugging, independent verification, and bounded critique;
+- **Sol Low–High** — optional architecture peer, difficult-problem advisor,
+  escalation solver, or high-value reviewer; and
 - **Jax** — explains the setup and guides you through the choices.
+
+Terra does not delegate implementation to itself. Worker reports remain claims
+until a fresh independent completion review accepts a packet containing the
+goal, constraints, criteria, scope, diff/artifacts, exact command results,
+deviations, and capability claims. The reviewer checks criterion coverage,
+out-of-scope effects, unapproved improvisation, and unsupported claims; strong
+reproducible evidence informs but never bypasses that review, including for
+trivial work. Terra then records the result in small project-local state files.
+This lets a new Terra context resume a long task without treating an old chat as
+authoritative memory. See [durable task state](docs/durable-task-state.md) and the
+[orchestration contract](skills/iron-box-orchestration/SKILL.md).
+
+For context and cost discipline, inspect durable state, active status, and
+latest evidence before interrupting, respawning, or fanning out. Keep a
+progressing in-scope worker, avoid duplicate replacements, fan out only
+disjoint work with independent evidence and a justified cost/time benefit, and
+record concise rationale for those decisions.
 
 Installation is not the complete setup. Onboarding verifies the package,
 activates the packaged roles and Jax through the supported client capability,
@@ -72,3 +93,20 @@ must tell you which supported UI action is needed.
 
 The onboarding skill handles the detailed setup, preserves unrelated user
 configuration, and reports unsupported or unverified capabilities honestly.
+
+## Design influences
+
+Iron Box is independently implemented; it uses native Codex orchestration and
+does not contain LongHorizon-Harness code or recreate its runtime. Its original
+role profiles are adapted from [Sol-Governed Codex](https://github.com/BusyBee3333/sol-governed-codex);
+legal attribution is in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+The durable-state protocol and fresh verification flow are informed by
+[LongHorizon-Harness](https://arxiv.org/html/2608.01964v1) and its
+[repository](https://github.com/AMAP-ML/LongHorizon-Harness), METR's
+[long-task measurement](https://arxiv.org/html/2503.14499v4), Chroma's
+[Context Rot research](https://www.trychroma.com/research/context-rot),
+[The Self-Correction Illusion](https://arxiv.org/html/2606.05976v2), and
+Anthropic's [effective harnesses for long-running agents](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents).
+These sources motivate explicit progress artifacts, bounded fresh contexts, and
+independent evidence—not a claim that any one design causes reliability.

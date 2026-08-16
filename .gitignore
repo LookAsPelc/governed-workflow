@@ -16,4 +16,5 @@ dist/
 *.egg-info/
 *:Zone.Identifier
 /naming.md
+.iron-box/
 temp/
