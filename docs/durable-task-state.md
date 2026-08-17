@@ -1,18 +1,39 @@
 # Durable task state
 
-For work that needs recovery across conversations, copy the two templates into
-a project-local `.iron-box/` directory. The directory is ignored by default.
-It enables a fresh root/manager to recover the task; it is not a workspace,
-audit database, event log, or evidence archive. Do not create it for a tiny,
-low-risk edit.
+For multi-step work that must survive a fresh conversation, copy the two
+templates into a project-local `.iron-box/` directory. The directory is
+ignored by default. It is a compact recovery checkpoint, not a workspace,
+audit database, event log, or evidence archive.
 
 ```text
 .iron-box/
-  task.json       # goal and protected acceptance contract
-  state.json      # small mutable progress snapshot
+  task.json       # stable task contract
+  state.json      # mutable, verified progress snapshot
 ```
 
-## Task template
+## Lifecycle
+
+1. Before delegating new work, read both files.
+2. Give a worker the original goal, relevant durable state, and only the
+   bounded context it needs—not the accumulated root conversation.
+3. Treat the worker report as a claim. Check it proportionally with direct
+   evidence or an independent review.
+4. After material progress, a decision, a blocker, or an invalidated approach,
+   update `state.json`. Only evidence-backed results belong in
+   `verified_progress`; rejected work remains evidence, not progress.
+
+A fresh root must be able to resume from the workspace and these two files
+without the previous chat.
+
+## Review input
+
+A fresh Luna verifier may return `PASS`, `REVISE`, or `BLOCKED` with findings,
+evidence, and uncertainty. That report can support a state update, but
+`state.json` records verified facts and remaining work—not a review ceremony or
+a task-level verdict. Small clear work may instead rely on deterministic
+evidence.
+
+## Stable task contract
 
 [`templates/iron-box-state/task.json`](../templates/iron-box-state/task.json)
 contains only:
@@ -24,7 +45,7 @@ contains only:
 The root/manager owns this contract. Workers and reviewers may identify an
 ambiguity, but do not silently rewrite the goal or criteria.
 
-## State template
+## Current task state
 
 [`templates/iron-box-state/state.json`](../templates/iron-box-state/state.json)
 contains only:
@@ -33,28 +54,16 @@ contains only:
 - `verified_progress`;
 - `important_decisions`;
 - `blockers`;
-- `uncertainty`.
+- `uncertainty`; and
+- `do_not_reuse`: rejected approaches or stale claims that a fresh root must
+  not treat as progress.
 
-Use short human-readable entries. A worker report is a claim, not proof: put a
-result in `verified_progress` only after deterministic checks or a proportional
-fresh review supports it. Keep command names, file paths, or other compact
-references when they help a new root reproduce the check, but do not build an
-ID scheme, timestamp ledger, fingerprint archive, claim registry, or chat dump.
+Use short human-readable entries. Include a compact command, file path, or
+artifact reference only when it helps a fresh root reproduce important proof.
+Do not add an ID scheme, timestamp ledger, fingerprint archive, claim
+registry, or chat dump.
 
-## Recovery
-
-1. Read `task.json` to recover the goal, constraints, and criteria.
-2. Read `state.json` to find remaining TODOs, verified progress, decisions,
-   blockers, and uncertainty.
-3. Re-check important progress when the underlying files or evidence have
-   changed, then send the smallest fresh packet to Luna or Sol.
-
-Small clear work may close with deterministic evidence. Request a fresh Luna
-or optional Sol review when independent judgment adds value; Sol is never a
-mandatory final gate. In every case, distinguish static checks from live
-runtime/UI observations and tell the user what remains uncertain.
-
-This deliberately small format has no daemon, database, generic event log,
-background watcher, custom executor, or mandatory process. Native Codex
-subagents, normal tests, and ordinary project files remain the mechanisms of
-execution and observation.
+Small clear work may close with deterministic evidence. For semantic or
+non-obvious work, use a fresh independent check when it adds value. In every
+case distinguish static checks from live runtime/UI observations and report
+what remains uncertain.

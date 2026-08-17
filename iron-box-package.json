@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "name": "iron-box",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "runtimeRequired": [
     "plugin.json",
     "iron-box-package.json",
@@ -14,6 +14,8 @@
     "skills/iron-box-onboarding/references/jax-lore.md",
     "skills/iron-box-onboarding/references/setup-protocol.md",
     "skills/iron-box-orchestration/SKILL.md",
+    "skills/iron-box-durable-state/SKILL.md",
+    "skills/iron-box-durable-state/agents/openai.yaml",
     "docs/durable-task-state.md",
     "templates/iron-box-state/task.json",
     "templates/iron-box-state/state.json",
@@ -26,6 +28,7 @@
     "assets/codex/agents/luna-debugger.toml",
     "assets/codex/agents/luna-verifier.toml",
     "assets/codex/agents/sol-advisor.toml",
+    "assets/codex/agents/sol-peer.toml",
     "assets/pets/jax/pet.json",
     "assets/pets/jax/spritesheet.webp"
   ],

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Iron Box Durable State"
+  short_description: "Maintain recoverable task state for long work"
+  default_prompt: "Use $iron-box-durable-state to set up or resume a durable task contract and verified state."

@@ -29,10 +29,8 @@ AGENT_PLUGINS_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.js
 # bounded, idempotent activation operation.
 BOOTSTRAP_FILES = (
     ("assets/codex/agents/luna-worker.toml", "agents/luna-worker.toml"),
-    ("assets/codex/agents/luna-researcher.toml", "agents/luna-researcher.toml"),
-    ("assets/codex/agents/luna-debugger.toml", "agents/luna-debugger.toml"),
     ("assets/codex/agents/luna-verifier.toml", "agents/luna-verifier.toml"),
-    ("assets/codex/agents/sol-advisor.toml", "agents/sol-advisor.toml"),
+    ("assets/codex/agents/sol-peer.toml", "agents/sol-peer.toml"),
     ("assets/pets/jax/pet.json", "pets/jax/pet.json"),
     ("assets/pets/jax/spritesheet.webp", "pets/jax/spritesheet.webp"),
 )

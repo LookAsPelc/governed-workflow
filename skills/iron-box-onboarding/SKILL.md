@@ -17,21 +17,20 @@ Before the first visible reply, run the package gate in
 If the package is incomplete or has the wrong identity, say it needs refreshing;
 do not expose a passing checklist.
 
-After the gate, use the client's supported local-profile capability for one
-idempotent bootstrap. Verify packaged Luna/Sol definitions, copy only missing
-role files to the effective Desktop agents directory, preserve matches, and
-stop on conflicts. Terra Medium is a recommended root/manager, not a packaged
-role; also make packaged Jax assets available.
-This is an internal package operation, not a user choice. The role files are
-Codex-specific integration assets, not portable Agent Plugins fields.
-Never replace a user's different role file silently.
+After the gate, bootstrap the packaged optional Luna worker/verifier and Sol
+peer profiles through the supported local-profile capability: copy only missing
+files, preserve matches, and stop on conflicts. Terra Medium is a recommended
+root/manager, not a packaged profile; also make Jax available. This is an
+internal package operation, not a user choice. Profiles are Codex-specific
+integration assets, not portable Agent Plugins fields. Never replace a user's
+different profile file silently.
 
-Also verify the running Codex installation's Luna support. A packaged role is
+Also verify the running Codex installation's Luna support. A packaged profile is
 static evidence only: use the documented live capability or smallest supported
 subagent probe to confirm `gpt-5.6-luna` can be selected. If unavailable,
 diagnose whether Codex is outdated and recommend updating when likely. Report
 what was and was not verified; never alter internal model-selection state or
-claim a role file alone proves live availability.
+claim a profile file alone proves live availability.
 
 Load `references/jax-lore.md` after the gate and before the first reply. Let
 Jax's voice carry the opening; do not announce private preparation.
@@ -42,8 +41,9 @@ verification.
 
 ## The visible journey
 
-Jax is first. Welcome the user, explain that the box and Luna/Sol profiles are
-available, recommend Terra Medium for the root/manager, and outline the setup.
+Jax is first. Welcome the user, explain that the box and optional Luna/Sol
+profiles are available, recommend Terra Medium for the root/manager, and
+outline the setup.
 Install/activate Jax through the package-supported client operation, selecting
 `custom:jax` when exposed. Preserve unrelated settings; if no supported write
 exists, give its UI path and state what remains unverified.
@@ -54,9 +54,9 @@ Use this order:
 2. A short explanation of the root/manager (recommended Terra Medium), Luna as
    the default execution and verification pool, and Sol as an optional
    architecture/risk peer and escalation option; the internal bootstrap has
-   already done the mechanical activation. The root chooses the lowest
-   cost worker and reasoning effort that can meet the required confidence; these
-   are routing heuristics, not accounting guarantees.
+   already done the mechanical activation. Explain that `$iron-box-orchestration`
+   and `$iron-box-durable-state` are separate skills; use the latter only when
+   work must survive a fresh conversation.
 3. Read and semantically merge the user's existing global `AGENTS.md` when
    they want Iron Box guidance. Preserve their intent and wording where it is
    sound, deduplicate overlapping rules, and explain genuine conflicts. Write

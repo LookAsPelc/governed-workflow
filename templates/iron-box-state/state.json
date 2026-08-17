@@ -3,5 +3,6 @@
   "verified_progress": [],
   "important_decisions": [],
   "blockers": [],
-  "uncertainty": []
+  "uncertainty": [],
+  "do_not_reuse": []
 }

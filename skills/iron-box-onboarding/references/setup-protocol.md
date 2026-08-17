@@ -7,13 +7,13 @@ required report layout.
 
 ## Core journey and consent
 
-The package gate and internal role bootstrap happen before the first visible
-reply. They verify the packaged role definitions, copy only missing files, and
+The package gate and internal profile bootstrap happen before the first visible
+reply. They verify the packaged optional profiles, copy only missing files, and
 roll back newly created files if a write fails. Existing matching files are
 left alone; a different existing role is a real conflict to explain, not a
 reason to overwrite it. The portable manifest packages the skills-based core.
-Codex-specific role provisioning is a separate integration layer, so never
-present those roles as a portable Agent Plugins field.
+Codex-specific profile provisioning is a separate integration layer, so never
+present those profiles as a portable Agent Plugins field.
 
 Jax is installed/activated first through the package-supported client
 operation; select `custom:jax` and the packaged display size through the same
@@ -21,10 +21,11 @@ supported profile capability when available. Then guide the user through this
 sequence:
 
 1. Orientation: the root/manager (recommended Terra Medium) manages intent,
-   routing, and durable state; Luna performs normal execution and independent
-   verification; Sol is a proportional peer for difficult architecture,
-   uncertainty, escalation, and high-value review. Terra is not a packaged
-   worker profile.
+   routing, and durable state; Luna performs normal bounded work and routine
+   independent checks; Sol is a proportional peer for difficult architecture,
+   uncertainty, escalation, and high-value review. The packaged profiles are
+   optional conveniences, not a mandatory role taxonomy. Terra is not a
+   packaged worker profile.
 2. Global guidance: inspect the user's `AGENTS.md` and merge Iron Box advice
    into the document's existing structure. This is semantic editing owned by
    the agent. Do not append a marker block, duplicate a section, or ask the
@@ -70,30 +71,6 @@ toward a recommendation instead of merely enumerating every possible value.
 Batch safe work the client can perform. If a supported write is unavailable,
 say exactly what could not be verified and provide the official UI route; never
 pretend a shell copy changed the Desktop profile.
-
-## Execution mode
-
-Choose the execution topology independently from the Luna/Terra/Sol routing
-decision. Iron Box supports two general modes:
-
-**Subagent mode** uses the host's supported multi-agent capability. The root
-agent spawns bounded workers, collects their reports, waits for completion, and
-controls their lifecycle wherever the running host exposes those operations.
-Use it when direct orchestration and shared task progress are useful.
-
-**Thread mode** uses a separate or new thread as an independent worker context.
-Use it when stronger context isolation is useful, explicit thread separation
-fits the task, or the host/user prefers that topology. The current harness may
-not expose programmatic creation or lifecycle control for top-level threads;
-Iron Box must not claim those operations. The host or user opens the thread,
-then the root hands over a bounded context packet and integrates the resulting
-artifacts or report.
-
-Thread mode is not a Luna fallback or workaround, and neither mode is
-inherently superior. Both modes use the same governance contract: bounded
-scope, explicit ownership, a task-specific context packet, acceptance
-criteria, evidence and verification, escalation, root integration and review,
-and preservation of unrelated work.
 
 ## Recovery and reporting
 

@@ -18,6 +18,7 @@
 - Use Superpowers judiciously; it is guidance, not law.
 - TDD is most useful for bug fixes and behavior with a settled contract.
 - Route governed multi-agent work through `$iron-box-orchestration`.
+- Use `$iron-box-durable-state` when multi-step work must survive a fresh root.
 - Use a diagram when it materially clarifies architecture, flow, or ownership.
 
 # Collaboration
@@ -27,6 +28,8 @@ communication, not implementation. Luna is the default pool for bounded work;
 Sol is an optional peer for difficult architecture, uncertainty, or high-value
 review. Treat worker reports as claims, choose the cheapest reliable route, and
 use deterministic evidence or a fresh review in proportion to the task.
+For multi-step work, read durable state before delegation and update only
+evidence-backed progress afterward so a fresh root can resume without the chat.
 Preserve existing user instructions, escalate unsettled requirements, and
 report exact verification evidence. See `$iron-box-orchestration` for the
 compact routing and review contract.

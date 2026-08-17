@@ -42,7 +42,7 @@ print("valid markerless AGENTS template")
 
 for filename, required in {
     "task.json": {"goal", "protected_constraints", "acceptance_criteria"},
-    "state.json": {"remaining_todos", "verified_progress", "important_decisions", "blockers", "uncertainty"},
+    "state.json": {"remaining_todos", "verified_progress", "important_decisions", "blockers", "uncertainty", "do_not_reuse"},
 }.items():
     path = root / "templates" / "iron-box-state" / filename
     payload = json.loads(path.read_text(encoding="utf-8"))
@@ -83,20 +83,34 @@ if (width, height) != (1536, 2288):
 print("valid Jax pet asset")
 
 roles = {
-    "luna-worker.toml": ("luna_worker", "gpt-5.6-luna"),
-    "luna-researcher.toml": ("luna_researcher", "gpt-5.6-luna"),
-    "luna-debugger.toml": ("luna_debugger", "gpt-5.6-luna"),
-    "luna-verifier.toml": ("luna_verifier", "gpt-5.6-luna"),
-    "sol-advisor.toml": ("sol_advisor", "gpt-5.6-sol"),
+    "luna-worker.toml": ("luna_worker", "gpt-5.6-luna", "workspace-write"),
+    "luna-verifier.toml": ("luna_verifier", "gpt-5.6-luna", "read-only"),
+    "sol-peer.toml": ("sol_peer", "gpt-5.6-sol", "read-only"),
 }
 roles_dir = root / "assets" / "codex" / "agents"
-for filename, (name, model) in roles.items():
+for filename, (name, model, sandbox) in roles.items():
     path = roles_dir / filename
     with path.open("rb") as handle:
         role = tomllib.load(handle)
-    if role.get("name") != name or role.get("model") != model:
+    if (
+        role.get("name") != name
+        or role.get("model") != model
+        or role.get("sandbox_mode") != sandbox
+        or not isinstance(role.get("developer_instructions"), str)
+    ):
         raise SystemExit(f"{path.relative_to(root)} has an invalid role identity")
 print(f"valid Codex role assets: {len(roles)}")
+
+with (root / "templates" / "codex-desktop.recommended.toml").open("rb") as handle:
+    desktop = tomllib.load(handle)
+agents = desktop.get("agents", {})
+if (
+    agents.get("default_subagent_model") != "gpt-5.6-luna"
+    or agents.get("default_subagent_reasoning_effort") != "medium"
+    or "max_depth" in agents
+):
+    raise SystemExit("invalid recommended Luna subagent configuration")
+print("valid recommended Luna subagent configuration")
 PY
 
 # Syntax checks are local and do not execute any host client.

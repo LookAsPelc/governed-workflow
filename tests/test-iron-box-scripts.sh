@@ -52,8 +52,8 @@ assert ".github/plugin/marketplace.json" in json.loads(
 )["runtimeRequired"]
 PY
 
-# Thread mode is a global topology; the Codex role assets remain ordinary
-# gpt-5.6-luna roles.
+# Codex profile assets are optional conveniences; dynamic task framing remains
+# the manager's responsibility.
 python3 - "$root" <<'PY'
 import json
 import pathlib
@@ -65,17 +65,24 @@ package = json.loads((root / "iron-box-package.json").read_text(encoding="utf-8"
 assert package["version"] == "0.3.0"
 
 roles = {
-    "luna-worker.toml": "luna_worker",
-    "luna-researcher.toml": "luna_researcher",
-    "luna-debugger.toml": "luna_debugger",
-    "luna-verifier.toml": "luna_verifier",
+    "luna-worker.toml": ("luna_worker", "gpt-5.6-luna", "workspace-write"),
+    "luna-verifier.toml": ("luna_verifier", "gpt-5.6-luna", "read-only"),
+    "sol-peer.toml": ("sol_peer", "gpt-5.6-sol", "read-only"),
 }
-for filename, expected_name in roles.items():
+for filename, (expected_name, expected_model, expected_sandbox) in roles.items():
     path = root / "assets" / "codex" / "agents" / filename
     with path.open("rb") as handle:
         role = tomllib.load(handle)
     assert role["name"] == expected_name
-    assert role["model"] == "gpt-5.6-luna"
+    assert role["model"] == expected_model
+    assert role["sandbox_mode"] == expected_sandbox
+
+with (root / "templates" / "codex-desktop.recommended.toml").open("rb") as handle:
+    desktop = tomllib.load(handle)
+agents = desktop["agents"]
+assert agents["default_subagent_model"] == "gpt-5.6-luna"
+assert agents["default_subagent_reasoning_effort"] == "medium"
+assert "max_depth" not in agents
 PY
 
 # Marketplace catalogs own their metadata; changing it must not invalidate the
@@ -124,7 +131,7 @@ fi
 mkdir -p "$tmp/codex-home"
 python3 "$root/scripts/iron_box.py" activate-package "$tmp/codex-home" >"$tmp/bootstrap.out"
 python3 "$root/scripts/iron_box.py" activate-package "$tmp/codex-home" >>"$tmp/bootstrap.out"
-grep -Fq 'bootstrap: activated 7 package files' "$tmp/bootstrap.out" || fail 'bootstrap did not create all package payloads'
+grep -Fq 'bootstrap: activated 5 package files' "$tmp/bootstrap.out" || fail 'bootstrap did not create all package payloads'
 grep -Fq 'bootstrap: already active' "$tmp/bootstrap.out" || fail 'bootstrap was not idempotent'
 printf 'different role\n' >"$tmp/codex-home/agents/luna-worker.toml"
 if python3 "$root/scripts/iron_box.py" activate-package "$tmp/codex-home" >"$tmp/bootstrap-conflict.out" 2>&1; then
