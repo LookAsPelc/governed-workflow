@@ -9,7 +9,7 @@ Iron Box is a small contract over native Codex orchestration. The root/manager
 owns the user goal, scope, decomposition, integration, and communication.
 
 ```text
-Terra Medium — orchestration proxy / manager
+Manager / orchestration proxy
 ├── Luna (Medium → Max) — normal bounded work and routine independent checks
 └── Sol (Low → High) — difficult reasoning, peer consultation, escalation,
                         architecture, and high-value review
@@ -39,8 +39,8 @@ Use a fresh, read-only Luna verifier when independent judgment adds value. Its
 report is `PASS`, `REVISE`, or `BLOCKED`, with findings, evidence, and
 uncertainty. `PASS` means the supplied evidence supports the criteria with no
 material issue; `REVISE` identifies a concrete issue before acceptance; and
-`BLOCKED` means the reviewer cannot reach a reliable conclusion. Terra weighs
-that report with the real workspace and deterministic checks when deciding what
+`BLOCKED` means the reviewer cannot reach a reliable conclusion. The manager
+weighs that report with the real workspace and deterministic checks when deciding what
 to accept. A small clear task may close from deterministic evidence alone. Use
 Sol only when stronger judgment is worth its cost.
 

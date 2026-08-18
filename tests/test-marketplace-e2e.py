@@ -20,7 +20,6 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from scripts.iron_box import validate_package
 
-CODEX = os.environ.get("CODEX_BIN", "codex")
 SKILLS = (
     "skills/iron-box-onboarding/SKILL.md",
     "skills/iron-box-orchestration/SKILL.md",
@@ -29,7 +28,10 @@ SKILLS = (
 )
 ROLES = (
     "assets/codex/agents/luna-worker.toml",
+    "assets/codex/agents/luna-researcher.toml",
+    "assets/codex/agents/luna-debugger.toml",
     "assets/codex/agents/luna-verifier.toml",
+    "assets/codex/agents/sol-advisor.toml",
     "assets/codex/agents/sol-peer.toml",
 )
 JAX_ASSETS = (
@@ -42,6 +44,19 @@ BOOTSTRAP_TARGETS = {
     "assets/pets/jax/spritesheet.webp": "pets/jax/spritesheet.webp",
 }
 MAX_SKILL_BYTES = 6_000
+
+
+def resolve_codex() -> str:
+    """Resolve the executable once so Windows npm shims work without a shell."""
+    requested = os.environ.get("CODEX_BIN", "codex")
+    executable = shutil.which(requested)
+    if executable:
+        return executable
+    source = "CODEX_BIN" if "CODEX_BIN" in os.environ else "PATH"
+    raise RuntimeError(f"could not resolve Codex executable {requested!r} from {source}")
+
+
+CODEX = resolve_codex()
 
 
 def run(*args: str, env: dict[str, str], cwd: Path | None = None) -> str:
@@ -114,7 +129,7 @@ def main() -> None:
             str(cached_root),
             env=bootstrap_env,
         )
-        assert "bootstrap: activated 5 package files" in bootstrap_output
+        assert "bootstrap: activated 8 package files" in bootstrap_output
         for source_relative, target_relative in BOOTSTRAP_TARGETS.items():
             source = cached_root / source_relative
             target = activation_home / target_relative
@@ -130,12 +145,15 @@ def main() -> None:
         assert (cached_root / "iron-box-package.json").is_file(), (
             "cached runtime payload is missing iron-box-package.json"
         )
+        package = json.loads(
+            (cached_root / "iron-box-package.json").read_text(encoding="utf-8")
+        )
         portable = json.loads((cached_root / "plugin.json").read_text(encoding="utf-8"))
         assert portable["$schema"] == (
             "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
         )
-        assert portable["name"] == "iron-box"
-        assert portable["version"] == "0.3.0"
+        assert portable["name"] == package["name"]
+        assert portable["version"] == package["version"]
         assert not {"agents", "skills", "category"}.intersection(portable)
         # Validate the cached runtime package through the contributor checker
         # loaded from this checkout.  The installed plugin does not need to

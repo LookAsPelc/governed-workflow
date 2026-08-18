@@ -1,9 +1,9 @@
 # Durable task state
 
-For multi-step work that must survive a fresh conversation, copy the two
-templates into a project-local `.iron-box/` directory. The directory is
-ignored by default. It is a compact recovery checkpoint, not a workspace,
-audit database, event log, or evidence archive.
+When recovery from a fresh conversation is expected or useful, copy the two
+templates into a project-local `.iron-box/` directory. It is a compact recovery
+checkpoint, not a workspace, audit database, event log, or evidence archive.
+The project decides whether to ignore `.iron-box/`.
 
 ```text
 .iron-box/
@@ -13,7 +13,7 @@ audit database, event log, or evidence archive.
 
 ## Lifecycle
 
-1. Before delegating new work, read both files.
+1. Before the next substantive action or delegation, read both files.
 2. Give a worker the original goal, relevant durable state, and only the
    bounded context it needs—not the accumulated root conversation.
 3. Treat the worker report as a claim. Check it proportionally with direct

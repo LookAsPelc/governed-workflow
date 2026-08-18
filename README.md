@@ -39,8 +39,8 @@ fields. GitHub Copilot CLI uses `.github/plugin/marketplace.json` as its
 marketplace catalog for distributing the same root Agent Plugin.
 
 The root chooses the cheapest reliable route, keeps worker packets small, and
-treats worker reports as claims rather than proof. For multi-step work it reads
-and updates `.iron-box/task.json` and `.iron-box/state.json`; only
+treats worker reports as claims rather than proof. When fresh-root recovery is
+useful, it reads and updates `.iron-box/task.json` and `.iron-box/state.json`; only
 evidence-backed results enter verified progress. Deterministic evidence may
 close a small clear task; a fresh Luna or optional Sol review is used when
 independent judgment adds value. See [durable task state](docs/durable-task-state.md)
@@ -56,7 +56,7 @@ Iron Box installs as one plugin, but its components are independent:
 
 - `$iron-box-orchestration` is the small root-routing rule;
 - `$iron-box-durable-state` maintains recoverable state for long work;
-- the three Codex profiles are optional execution conveniences;
+- the packaged Codex profiles are optional execution conveniences;
 - `$iron-box-onboarding` is the guided setup; and
 - Jax is the optional companion pet.
 
@@ -65,7 +65,7 @@ with findings, evidence, and uncertainty; that is concise review input for the
 manager, while durable state records verified facts rather than a verdict.
 
 Installation is not the complete setup. Onboarding verifies the package,
-offers the packaged Luna worker/verifier and Sol peer profiles plus Jax through
+offers the packaged optional Codex profiles plus Jax through
 the supported client capability, and checks whether the running Codex
 installation actually exposes the expected Luna configuration. A static profile
 is not proof of live availability; if Luna is unexpectedly unavailable,

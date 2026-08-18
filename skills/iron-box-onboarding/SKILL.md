@@ -17,13 +17,13 @@ Before the first visible reply, run the package gate in
 If the package is incomplete or has the wrong identity, say it needs refreshing;
 do not expose a passing checklist.
 
-After the gate, bootstrap the packaged optional Luna worker/verifier and Sol
-peer profiles through the supported local-profile capability: copy only missing
-files, preserve matches, and stop on conflicts. Terra Medium is a recommended
-root/manager, not a packaged profile; also make Jax available. This is an
-internal package operation, not a user choice. Profiles are Codex-specific
-integration assets, not portable Agent Plugins fields. Never replace a user's
-different profile file silently.
+After the gate, bootstrap the packaged optional Codex profiles through the
+supported local-profile capability: copy only missing files, preserve matches,
+and stop on conflicts. Terra Medium is a recommended root/manager, not a
+packaged profile; also make Jax available. This is an internal package
+operation, not a user choice. Profiles are Codex-specific integration assets,
+not portable Agent Plugins fields. Never replace a user's different profile
+file silently.
 
 Also verify the running Codex installation's Luna support. A packaged profile is
 static evidence only: use the documented live capability or smallest supported

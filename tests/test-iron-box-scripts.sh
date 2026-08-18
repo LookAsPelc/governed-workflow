@@ -40,16 +40,18 @@ import pathlib
 import sys
 
 root = pathlib.Path(sys.argv[1])
+package = json.loads((root / "iron-box-package.json").read_text(encoding="utf-8"))
 portable = json.loads((root / "plugin.json").read_text(encoding="utf-8"))
 assert portable["$schema"] == "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
-assert portable["name"] == "iron-box" and portable["version"] == "0.3.0"
+assert portable["name"] == package["name"] and portable["version"] == package["version"]
 assert not {"agents", "skills", "category"}.intersection(portable)
-assert "plugin.json" in json.loads(
-    (root / "iron-box-package.json").read_text(encoding="utf-8")
-)["runtimeRequired"]
-assert ".github/plugin/marketplace.json" in json.loads(
-    (root / "iron-box-package.json").read_text(encoding="utf-8")
-)["runtimeRequired"]
+assert "plugin.json" in package["runtimeRequired"]
+assert ".github/plugin/marketplace.json" in package["runtimeRequired"]
+codex = json.loads((root / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
+github = json.loads((root / ".github" / "plugin" / "marketplace.json").read_text(encoding="utf-8"))
+assert codex["version"] == package["version"]
+assert github["metadata"]["version"] == package["version"]
+assert github["plugins"][0]["version"] == package["version"]
 PY
 
 # Codex profile assets are optional conveniences; dynamic task framing remains
@@ -62,11 +64,13 @@ import tomllib
 
 root = pathlib.Path(sys.argv[1])
 package = json.loads((root / "iron-box-package.json").read_text(encoding="utf-8"))
-assert package["version"] == "0.3.0"
 
 roles = {
     "luna-worker.toml": ("luna_worker", "gpt-5.6-luna", "workspace-write"),
+    "luna-researcher.toml": ("luna_researcher", "gpt-5.6-luna", "read-only"),
+    "luna-debugger.toml": ("luna_debugger", "gpt-5.6-luna", "workspace-write"),
     "luna-verifier.toml": ("luna_verifier", "gpt-5.6-luna", "read-only"),
+    "sol-advisor.toml": ("sol_advisor", "gpt-5.6-sol", "read-only"),
     "sol-peer.toml": ("sol_peer", "gpt-5.6-sol", "read-only"),
 }
 for filename, (expected_name, expected_model, expected_sandbox) in roles.items():
@@ -77,16 +81,19 @@ for filename, (expected_name, expected_model, expected_sandbox) in roles.items()
     assert role["model"] == expected_model
     assert role["sandbox_mode"] == expected_sandbox
 
+assert {
+    path for path in package["runtimeRequired"] if path.startswith("assets/codex/agents/")
+} == {f"assets/codex/agents/{filename}" for filename in roles}
+
 with (root / "templates" / "codex-desktop.recommended.toml").open("rb") as handle:
     desktop = tomllib.load(handle)
 agents = desktop["agents"]
 assert agents["default_subagent_model"] == "gpt-5.6-luna"
-assert agents["default_subagent_reasoning_effort"] == "medium"
-assert "max_depth" not in agents
+assert agents["default_subagent_reasoning_effort"] == "high"
 PY
 
-# Marketplace catalogs own their metadata; changing it must not invalidate the
-# packaged plugin as long as the Iron Box entry remains correct.
+# Marketplace catalogs may carry independent names, while the Iron Box version
+# remains coupled to the package metadata.
 python3 - "$root" "$tmp/independent-marketplace" <<'PY'
 import json
 import pathlib
@@ -104,7 +111,6 @@ codex.write_text(json.dumps(catalog), encoding="utf-8")
 github = target / ".github/plugin/marketplace.json"
 catalog = json.loads(github.read_text(encoding="utf-8"))
 catalog["name"] = "copilot-catalog"
-catalog["metadata"]["version"] = "9.9.9"
 github.write_text(json.dumps(catalog), encoding="utf-8")
 subprocess.run(
     [sys.executable, str(target / "scripts/iron_box.py"), "validate-package", str(target)],
@@ -131,7 +137,7 @@ fi
 mkdir -p "$tmp/codex-home"
 python3 "$root/scripts/iron_box.py" activate-package "$tmp/codex-home" >"$tmp/bootstrap.out"
 python3 "$root/scripts/iron_box.py" activate-package "$tmp/codex-home" >>"$tmp/bootstrap.out"
-grep -Fq 'bootstrap: activated 5 package files' "$tmp/bootstrap.out" || fail 'bootstrap did not create all package payloads'
+grep -Fq 'bootstrap: activated 8 package files' "$tmp/bootstrap.out" || fail 'bootstrap did not create all package payloads'
 grep -Fq 'bootstrap: already active' "$tmp/bootstrap.out" || fail 'bootstrap was not idempotent'
 printf 'different role\n' >"$tmp/codex-home/agents/luna-worker.toml"
 if python3 "$root/scripts/iron_box.py" activate-package "$tmp/codex-home" >"$tmp/bootstrap-conflict.out" 2>&1; then

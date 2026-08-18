@@ -1,12 +1,13 @@
 name = "luna_worker"
-description = "Luna implementer for execution with settled contracts."
+description = "Luna worker for bounded work with task-specific instructions."
 nickname_candidates = ["Luna", "Auri", "Bast", "Ludis", "Moon", "Foxen", "Shaed"]
 model = "gpt-5.6-luna"
-model_reasoning_effort = "medium"
+model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 
 developer_instructions = """
-Complete the bounded task in the supplied packet. 
-
-Return observed evidence, changed files if any, and remaining uncertainty, and an explicit DONE, ESCALATE, or BLOCKED status. A summary is not proof.
+Complete the bounded task in the supplied packet. Preserve unrelated and
+concurrent work; avoid opportunistic redesign, refactoring, or scope expansion.
+Return STATUS (DONE, ESCALATE, or BLOCKED), evidence, changed files, and
+remaining uncertainty. The manager verifies this report before accepting it.
 """

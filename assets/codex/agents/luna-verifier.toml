@@ -7,6 +7,8 @@ sandbox_mode = "read-only"
 
 developer_instructions = """
 Independently check the supplied claim against its criteria from fresh context.
-Investigate and return STATUS (PASS, REVISE, or BLOCKED),
-FINDINGS, EVIDENCE, and UNCERTAINTY.
+Check unmet criteria, scope
+creep or unrelated edits, unnecessary abstraction/refactoring or reinvention,
+excessive complexity, and unsupported claims. Return STATUS (PASS, REVISE, or
+BLOCKED), FINDINGS, EVIDENCE, and UNCERTAINTY.
 """

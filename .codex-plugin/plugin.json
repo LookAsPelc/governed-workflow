@@ -1,6 +1,6 @@
 {
   "name": "iron-box",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "An iterative, user-owned Codex Desktop workflow for governed agent work.",
   "author": {"name": "Iron Box maintainers"},
   "license": "MIT",

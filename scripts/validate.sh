@@ -84,10 +84,20 @@ print("valid Jax pet asset")
 
 roles = {
     "luna-worker.toml": ("luna_worker", "gpt-5.6-luna", "workspace-write"),
+    "luna-researcher.toml": ("luna_researcher", "gpt-5.6-luna", "read-only"),
+    "luna-debugger.toml": ("luna_debugger", "gpt-5.6-luna", "workspace-write"),
     "luna-verifier.toml": ("luna_verifier", "gpt-5.6-luna", "read-only"),
+    "sol-advisor.toml": ("sol_advisor", "gpt-5.6-sol", "read-only"),
     "sol-peer.toml": ("sol_peer", "gpt-5.6-sol", "read-only"),
 }
 roles_dir = root / "assets" / "codex" / "agents"
+runtime_profiles = {
+    path
+    for path in json.loads((root / "iron-box-package.json").read_text(encoding="utf-8"))["runtimeRequired"]
+    if path.startswith("assets/codex/agents/")
+}
+if runtime_profiles != {f"assets/codex/agents/{filename}" for filename in roles}:
+    raise SystemExit("runtime package must declare exactly the supported Codex profiles")
 for filename, (name, model, sandbox) in roles.items():
     path = roles_dir / filename
     with path.open("rb") as handle:
@@ -106,8 +116,7 @@ with (root / "templates" / "codex-desktop.recommended.toml").open("rb") as handl
 agents = desktop.get("agents", {})
 if (
     agents.get("default_subagent_model") != "gpt-5.6-luna"
-    or agents.get("default_subagent_reasoning_effort") != "medium"
-    or "max_depth" in agents
+    or agents.get("default_subagent_reasoning_effort") != "high"
 ):
     raise SystemExit("invalid recommended Luna subagent configuration")
 print("valid recommended Luna subagent configuration")

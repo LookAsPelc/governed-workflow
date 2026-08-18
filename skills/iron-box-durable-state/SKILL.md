@@ -5,10 +5,9 @@ description: Maintain a compact, recoverable task contract and verified state fo
 
 # Iron Box Durable State
 
-For a task larger than a small self-contained edit, create project-local
-`.iron-box/task.json` and `.iron-box/state.json` from the bundled templates.
-This skill is independent of custom agent profiles and orchestration; use it
-whenever durable recovery is useful.
+When recovery from a fresh conversation is expected or useful, create
+project-local `.iron-box/task.json` and `.iron-box/state.json` from the bundled
+templates. This skill is independent of custom agent profiles and orchestration.
 
 ## Maintain the two files
 
