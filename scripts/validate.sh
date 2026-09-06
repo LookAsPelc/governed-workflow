@@ -40,16 +40,6 @@ if "iron-box:start" in template or "iron-box:end" in template:
     raise SystemExit("AGENTS template must be markerless")
 print("valid markerless AGENTS template")
 
-for filename, required in {
-    "task.json": {"goal", "protected_constraints", "acceptance_criteria"},
-    "state.json": {"remaining_todos", "verified_progress", "important_decisions", "blockers", "uncertainty", "do_not_reuse"},
-}.items():
-    path = root / "templates" / "iron-box-state" / filename
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(payload, dict) or set(payload) != required:
-        raise SystemExit(f"invalid durable-state template: {path.relative_to(root)}")
-print("valid durable-state templates")
-
 onboarding = root / "skills" / "iron-box-onboarding" / "SKILL.md"
 if onboarding.stat().st_size > 6_000:
     raise SystemExit(f"onboarding skill exceeds 6000 bytes: {onboarding.stat().st_size}")

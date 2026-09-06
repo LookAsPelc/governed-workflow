@@ -20,17 +20,18 @@ operation; select `custom:jax` and the packaged display size through the same
 supported profile capability when available. Then guide the user through this
 sequence:
 
-1. Orientation: the root/manager (recommended Terra Medium) manages intent,
-   routing, and durable state; Luna performs normal bounded work and routine
-   independent checks; Sol is a proportional peer for difficult architecture,
-   uncertainty, escalation, and high-value review. The packaged profiles are
-   optional conveniences, not a mandatory role taxonomy. Terra is not a
-   packaged worker profile.
-2. Global guidance: inspect the user's `AGENTS.md` and merge Iron Box advice
-   into the document's existing structure. This is semantic editing owned by
-   the agent. Do not append a marker block, duplicate a section, or ask the
-   user to run a mechanical patcher.
-3. Workflow core: recommend the model, review, memory, request-for-input,
+1. Orientation: choose the root/manager variant before applying settings.
+   Economy uses GPT-5.6 Terra with medium reasoning for ordinary governed work;
+   Long-horizon uses GPT-6 Astra with low reasoning for long, complex
+   orchestration. Luna performs normal bounded work and routine independent
+   checks; Sol is a proportional peer for difficult architecture, uncertainty,
+   escalation, and high-value review. The packaged profiles are optional
+   conveniences, not a mandatory role taxonomy.
+2. Global guidance: inspect the user's `AGENTS.md` and merge only shared
+   guidance every root/worker may inherit into the document's existing structure. Keep root-only orchestration in its skill; do not paste it into globally inherited `AGENTS.md`. This is semantic editing owned by the agent.
+   Do not append a marker block, duplicate a section, or ask the user to run a mechanical patcher.
+3. Workflow core: recommend the selected root model and reasoning effort,
+   review, memory, request-for-input,
    multi-agent, and workspace-access values that are relevant to this client.
    Apply one coherent local batch after consent, preserving unrelated keys.
 4. Environment fit: inspect the actual platform and client before suggesting
@@ -46,10 +47,11 @@ sequence:
 6. Live test: run the smallest useful multi-agent check and distinguish static
    asset presence from a live client probe. Confirm that the running Codex
    installation exposes the expected Luna agent configuration when the host
-   supports model-selectable subagents. If it does not, diagnose whether the
-   installation is outdated, recommend a Codex update when appropriate, and
-   report the limitation plainly. A missing live capability is not a reason to
-   mutate internal model-selection state.
+   supports model-selectable subagents, and probe the selected root when the
+   host supports it. Probe Astra only after Long-horizon is selected. If a
+   capability is unavailable or unverified, report that state plainly, diagnose
+   whether the installation is outdated when likely, and never silently switch
+   roots or mutate internal model-selection state.
 
 A single consent may cover a bounded group of safe, reversible local changes
 and recommended integrations that use that same local installation path. Ask
@@ -61,10 +63,18 @@ consent either.
 
 ## Choosing settings
 
-Use `templates/codex-desktop.recommended.toml` as a workflow-core reference,
-not as a universal desktop preset. It intentionally leaves environment-specific
-choices unset. Offer a recommendation based on observed capabilities and the
-user's goals, rather than blindly copying every value.
+Use `templates/codex-desktop.recommended.toml` as the single shared
+workflow-core reference. It keeps the Economy recommendation of GPT-5.6 Terra
+with medium reasoning; Long-horizon selects GPT-6 Astra with low reasoning in
+the supported client UI. The template intentionally leaves environment-specific
+choices unset. Merge only supported keys through the client's documented path,
+preserve unrelated values, and offer a recommendation based on observed
+capabilities and the user's goals rather than blindly copying every value. A
+static template does not prove live model availability: report the selected
+root as unavailable versus unverified when the supported probe cannot establish
+it, and never silently fall back. The config reference documents the
+`model_reasoning_effort` key; the GPT-6 Astra model reference documents its low
+effort support.
 
 Teach before asking: describe what a setting changes and why it helps. Lead
 toward a recommendation instead of merely enumerating every possible value.

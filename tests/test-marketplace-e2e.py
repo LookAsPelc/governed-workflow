@@ -23,8 +23,6 @@ from scripts.iron_box import validate_package
 SKILLS = (
     "skills/iron-box-onboarding/SKILL.md",
     "skills/iron-box-orchestration/SKILL.md",
-    "skills/iron-box-durable-state/SKILL.md",
-    "skills/iron-box-durable-state/agents/openai.yaml",
 )
 ROLES = (
     "assets/codex/agents/luna-worker.toml",

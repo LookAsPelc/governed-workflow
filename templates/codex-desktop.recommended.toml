@@ -3,6 +3,8 @@
 # Environment-specific UI preferences stay unset; derive them from the user.
 
 model = "gpt-5.6-terra"
+model_reasoning_effort = "medium"
+# Shared workflow settings for both root variants; Economy defaults to Terra
 approvals_reviewer = "auto_review"
 
 [features]

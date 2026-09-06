@@ -2,132 +2,86 @@
 
 ![Iron Box](assets/app-icon.png)
 
-Iron Box is an Agent Plugin with a portable, skills-based core and
-Codex-specific integration where the portable standard does not define a
-client behavior. The core is user-owned governance for bounded work; the
-Codex layer offers optional execution profiles and Jax where the running client
-supports them. Iron Box keeps a root/manager focused on intent, routing, and
-recoverable task state; sends bounded work to Luna; and uses Sol only when
-stronger judgment earns its cost. Jax guides the initial setup.
+Iron Box is an Agent Plugin with a portable skills core and optional Codex
+integration. It keeps a root/manager focused on intent, routing, verification,
+and integration; Luna handles bounded execution; and Sol is a proportional
+escalation peer. Development workflow artifacts remain the responsibility of
+native tools such as Superpowers.
 
-## For the installation agent
+## Root variants
 
-If the user asks you to install this repository, use the supported plugin
-installation flow. **After installation, immediately invoke the
-`$iron-box-onboarding` skill and continue according to its instructions.**
+Both variants use the same orchestration contract, Luna execution and fresh
+verification, and optional Sol escalation:
 
-Do not stop after reporting that the plugin was installed. Do not clone the
-repository into the user's project or copy role files by hand. If the skill is
-not visible, refresh the plugin or restart Codex only when the client requires
-it, then continue with onboarding.
+- **Economy:** GPT-5.6 Terra with medium reasoning for ordinary governed work.
+  The shared recommendation is
+  [`templates/codex-desktop.recommended.toml`](templates/codex-desktop.recommended.toml).
+- **Long-horizon:** GPT-6 Astra with low reasoning for long, complex orchestration.
 
-## For the user
+The shared desktop template contains the workflow settings and Economy defaults;
+it does not encode the root variant. The
+[Codex config reference](https://learn.chatgpt.com/docs/config-file/config-reference)
+documents `model_reasoning_effort`; the [GPT-6 Astra model reference](https://developers.openai.com/api/docs/models/gpt-6-astra)
+documents the model and its low effort support. A static file does not prove
+that a model is available in the current client or account; onboarding probes
+the selected root only where the host supports it and reports unavailable versus
+unverified without silently switching roots.
 
-Iron Box gives Codex a simple division of work:
+## Workflow
 
-- **Root/manager (recommended Terra Medium)** — intent, routing, durable state,
-  verification decisions, integration, and communication;
-- **Luna Medium–Max** — normal bounded work and routine independent checks;
-- **Sol Low–High** — optional architecture peer, difficult-problem advisor,
-  escalation solver, or high-value reviewer; and
-- **Jax** — explains the setup and guides you through the choices.
+Iron Box routes bounded work and verifies evidence; the shared rules for Luna
+effort, worker reuse, fresh review, Sol escalation, and recovery are in the
+[orchestration contract](skills/iron-box-orchestration/SKILL.md). The
+[why Iron Box essay](docs/why-iron-box.md) explains the design rationale.
+Superpowers supplies the surrounding development artifacts; Iron Box does not
+maintain a parallel task or recovery state.
 
-The portable package is centered on Agent Skills (and MCP integrations when a
-host supplies them). Optional Codex profiles, Jax behavior, and marketplace
-installation are client-specific integration rather than portable manifest
-fields. GitHub Copilot CLI uses `.github/plugin/marketplace.json` as its
-marketplace catalog for distributing the same root Agent Plugin.
+Worker reports are claims. The root reviews the relevant source, diff,
+runtime, or other artifact and keeps static configuration evidence distinct
+from live client/model capability. Do not push, publish, deploy, change production, or
+make destructive external changes without explicit user authority.
 
-The root chooses the cheapest reliable route, keeps worker packets small, and
-treats worker reports as claims rather than proof. When fresh-root recovery is
-useful, it reads and updates `.iron-box/task.json` and `.iron-box/state.json`; only
-evidence-backed results enter verified progress. Deterministic evidence may
-close a small clear task; a fresh Luna or optional Sol review is used when
-independent judgment adds value. See [durable task state](docs/durable-task-state.md)
-and the [orchestration contract](skills/iron-box-orchestration/SKILL.md).
+## Installation
 
-For context and cost discipline, keep the root context focused, delegate
-bounded work, and fan out only disjoint work whose expected benefit justifies
-the cost.
+If a user asks an agent to install this repository, use the supported plugin
+installation flow and invoke `$iron-box-onboarding` immediately afterward. Do
+not stop after reporting installation. The onboarding skill verifies package
+identity, preserves matching user files, stops on conflicts, explains the two
+root variants, and reports which live model capabilities were actually tested.
 
-## Components
+With the supported Codex CLI, the equivalent flow is:
 
-Iron Box installs as one plugin, but its components are independent:
-
-- `$iron-box-orchestration` is the small root-routing rule;
-- `$iron-box-durable-state` maintains recoverable state for long work;
-- the packaged Codex profiles are optional execution conveniences;
-- `$iron-box-onboarding` is the guided setup; and
-- Jax is the optional companion pet.
-
-Use any one where it helps. A verifier returns `PASS`, `REVISE`, or `BLOCKED`
-with findings, evidence, and uncertainty; that is concise review input for the
-manager, while durable state records verified facts rather than a verdict.
-
-Installation is not the complete setup. Onboarding verifies the package,
-offers the packaged optional Codex profiles plus Jax through
-the supported client capability, and checks whether the running Codex
-installation actually exposes the expected Luna configuration. A static profile
-is not proof of live availability; if Luna is unexpectedly unavailable,
-onboarding diagnoses whether Codex is outdated, recommends an update when
-appropriate, and reports what could and could not be verified. It also explains
-relevant settings and recommended integrations before asking whether you want
-to install or activate them. You do not need to know what to ask for or how the
-pieces fit together.
-
-## Install through an agent
-
-Give your Codex agent this repository URL and use a request such as:
-
-> Install Iron Box from https://github.com/LookAsPelc/governed-workflow. Use the
-> supported plugin flow and continue directly with the Iron Box onboarding. I
-> am new to this, so explain the choices and do not stop after installation.
-
-The agent should install the plugin through the running client's plugin or
-marketplace interface. The onboarding skill is the source of truth for the
-remaining setup.
-
-## Install manually
-
-With the supported Codex CLI, use:
-
-```bash
+```text
 codex plugin marketplace add LookAsPelc/governed-workflow
 codex plugin add iron-box@iron-box
 ```
 
-Then start the guided setup with `$iron-box-onboarding`. The equivalent
-Plugins/Marketplace UI is also supported. For a local development checkout,
-use `.` instead of the GitHub repository URL.
+Then start `$iron-box-onboarding`. For a local development checkout, use the
+checkout path in place of the repository URL. The equivalent Plugins/Marketplace
+UI is also supported.
 
-## If installation stopped early
+Onboarding also explains relevant integrations and asks before installing or
+activating them. It preserves unrelated user configuration and reports any
+unsupported or unverified capability honestly.
 
-Tell the agent:
+## Components
 
-> Iron Box is installed, but onboarding is not complete. Verify that the plugin
-> is enabled and continue with `$iron-box-onboarding`. Explain recommended
-> integrations and ask for my consent before installing or activating them.
-
-If Jax is not active, run onboarding again rather than manually editing a
-profile or copying pet files. If the client cannot verify activation, the agent
-must tell you which supported UI action is needed.
-
-The onboarding skill handles the detailed setup, preserves unrelated user
-configuration, and reports unsupported or unverified capabilities honestly.
+- `$iron-box-orchestration` is the shared root routing and verification skill.
+- `$iron-box-onboarding` guides setup and live capability checks.
+- The packaged Luna/Sol TOML files are optional Codex execution profiles.
+- Jax is an optional onboarding companion.
 
 ## Design influences
 
-Iron Box is independently implemented; it uses native Codex orchestration and
-does not contain LongHorizon-Harness code or recreate its runtime. Its original
-role profiles are adapted from [Sol-Governed Codex](https://github.com/BusyBee3333/sol-governed-codex);
-legal attribution is in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Iron Box is independently implemented. It does not contain LongHorizon-Harness
+code or recreate its runtime. Original role profiles are adapted from
+[Sol-Governed Codex](https://github.com/BusyBee3333/sol-governed-codex); legal
+attribution is in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-The durable-state protocol and fresh verification flow are informed by
-[LongHorizon-Harness](https://arxiv.org/html/2608.01964v1) and its
-[repository](https://github.com/AMAP-ML/LongHorizon-Harness), METR's
-[long-task measurement](https://arxiv.org/html/2503.14499v4), Chroma's
+The design is informed by [LongHorizon-Harness](https://arxiv.org/html/2608.01964v1),
+[METR long-task measurement](https://arxiv.org/html/2503.14499v4),
 [Context Rot research](https://www.trychroma.com/research/context-rot),
 [The Self-Correction Illusion](https://arxiv.org/html/2606.05976v2), and
-Anthropic's [effective harnesses for long-running agents](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents).
-These sources motivate explicit progress artifacts, bounded fresh contexts, and
-independent evidence—not a claim that any one design causes reliability.
+[Anthropic's effective harnesses](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents).
+These sources motivate bounded delegation and evidence-based verification; they
+are not reliability guarantees.
