@@ -218,12 +218,12 @@ možnost rozporu. Více agentů proto není automaticky více spolehlivosti.
 Koordinace sama něco stojí. U jednoduchého úkolu může být levnější jeden
 worker a deterministický test než worker, verifier a další arbitr.
 
-Terra, Luna a Sol zde nejsou organizační hierarchie ani trvalé persony. Jsou to
-názvy používané pro volbu modelu nebo doporučené cesty podle konkrétního hosta.
-Doporučení pro volbu modelu rootu patří do [README](../README.md), zatímco
-routing workerů a reasoning effort řídí [governance skill](../skills/iron-box-orchestration/SKILL.md).
-Root volí nejlevnější dostupnou volbu, která má podle rizika rozumnou šanci
-úkol spolehlivě zvládnout.
+Označení modelů nejsou organizační hierarchie ani trvalé persony; jde o volby
+konkrétního klienta. Aktuální doporučení pro model rootu patří do
+[README](../README.md), zatímco routing workerů a reasoning effort řídí
+[governance skill](../skills/iron-box-orchestration/SKILL.md).
+Doporučeným rootem je Sol; jeho reasoning effort se řídí náročností
+orchestrace.
 
 Přesné podporované profily a doporučené úrovně effortu patří do sdíleného
 [governance skillu](../skills/iron-box-orchestration/SKILL.md), který je

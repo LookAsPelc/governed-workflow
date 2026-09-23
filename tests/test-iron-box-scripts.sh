@@ -66,19 +66,20 @@ root = pathlib.Path(sys.argv[1])
 package = json.loads((root / "iron-box-package.json").read_text(encoding="utf-8"))
 
 roles = {
-    "luna-worker.toml": ("luna_worker", "gpt-5.6-luna", "workspace-write"),
-    "luna-researcher.toml": ("luna_researcher", "gpt-5.6-luna", "read-only"),
-    "luna-debugger.toml": ("luna_debugger", "gpt-5.6-luna", "workspace-write"),
-    "luna-verifier.toml": ("luna_verifier", "gpt-5.6-luna", "read-only"),
-    "sol-advisor.toml": ("sol_advisor", "gpt-5.6-sol", "read-only"),
-    "sol-peer.toml": ("sol_peer", "gpt-5.6-sol", "read-only"),
+    "luna-worker.toml": ("luna_worker", "gpt-6-luna", "high", "workspace-write"),
+    "luna-researcher.toml": ("luna_researcher", "gpt-6-luna", "high", "read-only"),
+    "luna-debugger.toml": ("luna_debugger", "gpt-6-luna", "high", "workspace-write"),
+    "luna-verifier.toml": ("luna_verifier", "gpt-6-luna", "high", "read-only"),
+    "sol-advisor.toml": ("sol_advisor", "gpt-6-sol", "low", "read-only"),
+    "sol-peer.toml": ("sol_peer", "gpt-6-sol", "low", "read-only"),
 }
-for filename, (expected_name, expected_model, expected_sandbox) in roles.items():
+for filename, (expected_name, expected_model, expected_effort, expected_sandbox) in roles.items():
     path = root / "assets" / "codex" / "agents" / filename
     with path.open("rb") as handle:
         role = tomllib.load(handle)
     assert role["name"] == expected_name
     assert role["model"] == expected_model
+    assert role["model_reasoning_effort"] == expected_effort
     assert role["sandbox_mode"] == expected_sandbox
 
 assert {
@@ -88,7 +89,9 @@ assert {
 with (root / "templates" / "codex-desktop.recommended.toml").open("rb") as handle:
     desktop = tomllib.load(handle)
 agents = desktop["agents"]
-assert agents["default_subagent_model"] == "gpt-5.6-luna"
+assert desktop["model"] == "gpt-6-sol"
+assert desktop["model_reasoning_effort"] == "low"
+assert agents["default_subagent_model"] == "gpt-6-luna"
 assert agents["default_subagent_reasoning_effort"] == "high"
 PY
 

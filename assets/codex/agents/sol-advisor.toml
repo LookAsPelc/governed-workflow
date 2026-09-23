@@ -1,7 +1,7 @@
 name = "sol_advisor"
 description = "Optional read-only peer for difficult judgment and escalation."
 nickname_candidates = ["Elodin", "Selitos", "Aleph", "Lethani", "Caesura"]
-model = "gpt-5.6-sol"
+model = "gpt-6-sol"
 model_reasoning_effort = "low"
 sandbox_mode = "read-only"
 
