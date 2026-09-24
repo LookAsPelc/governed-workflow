@@ -73,12 +73,11 @@ if (width, height) != (1536, 2288):
 print("valid Jax pet asset")
 
 roles = {
-    "luna-worker.toml": ("luna_worker", "gpt-5.6-luna", "workspace-write"),
-    "luna-researcher.toml": ("luna_researcher", "gpt-5.6-luna", "read-only"),
-    "luna-debugger.toml": ("luna_debugger", "gpt-5.6-luna", "workspace-write"),
-    "luna-verifier.toml": ("luna_verifier", "gpt-5.6-luna", "read-only"),
-    "sol-advisor.toml": ("sol_advisor", "gpt-5.6-sol", "read-only"),
-    "sol-peer.toml": ("sol_peer", "gpt-5.6-sol", "read-only"),
+    "luna-worker.toml": ("luna_worker", "gpt-6-luna", "workspace-write"),
+    "luna-researcher.toml": ("luna_researcher", "gpt-6-luna", "read-only"),
+    "luna-debugger.toml": ("luna_debugger", "gpt-6-luna", "workspace-write"),
+    "luna-verifier.toml": ("luna_verifier", "gpt-6-luna", "read-only"),
+    "sol-peer.toml": ("sol_peer", "gpt-6-sol", "read-only"),
 }
 roles_dir = root / "assets" / "codex" / "agents"
 runtime_profiles = {
@@ -95,6 +94,7 @@ for filename, (name, model, sandbox) in roles.items():
     if (
         role.get("name") != name
         or role.get("model") != model
+        or "model_reasoning_effort" in role
         or role.get("sandbox_mode") != sandbox
         or not isinstance(role.get("developer_instructions"), str)
     ):
@@ -105,11 +105,13 @@ with (root / "templates" / "codex-desktop.recommended.toml").open("rb") as handl
     desktop = tomllib.load(handle)
 agents = desktop.get("agents", {})
 if (
-    agents.get("default_subagent_model") != "gpt-5.6-luna"
+    desktop.get("model") != "gpt-6-sol"
+    or desktop.get("model_reasoning_effort") != "low"
+    or agents.get("default_subagent_model") != "gpt-6-luna"
     or agents.get("default_subagent_reasoning_effort") != "high"
 ):
-    raise SystemExit("invalid recommended Luna subagent configuration")
-print("valid recommended Luna subagent configuration")
+    raise SystemExit("invalid recommended Sol root or Luna subagent configuration")
+print("valid recommended Sol root and Luna subagent configuration")
 PY
 
 # Syntax checks are local and do not execute any host client.
