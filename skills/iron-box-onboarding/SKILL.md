@@ -15,12 +15,11 @@ Before the first visible reply, run the package gate in
 If the package is incomplete or has the wrong identity, say it needs refreshing;
 do not expose a passing checklist.
 
-After the gate, bootstrap the packaged optional Codex profiles through the
-supported local-profile capability. Create missing files, preserve matches,
-and upgrade or remove only byte-exact profiles from version 0.3.1; modified or
-unknown profiles are conflicts. This bootstrap is an internal package operation,
-not a user choice. Profiles are Codex-specific integration assets, not portable
-Agent Plugins fields. Never replace a user's different profile file silently.
+After the gate, run the packaged optional Codex profile bootstrap through the
+supported local-profile capability. If it reports conflicts, preserve the
+user's files and explain the conflict. This bootstrap is an internal package
+operation, not a user choice. Profiles are Codex-specific integration assets,
+not portable Agent Plugins fields.
 
 Verify the running Codex installation's Luna support. A packaged profile is
 static evidence only: use the documented live capability or smallest supported

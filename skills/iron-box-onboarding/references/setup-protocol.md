@@ -8,13 +8,9 @@ required report layout.
 ## Core journey and consent
 
 The package gate and internal profile bootstrap happen before the first visible
-reply. They verify the packaged optional profiles, create missing files, and
-upgrade or remove only byte-exact profiles from version 0.3.1. Existing matching
-files are left alone; modified or unknown profiles are conflicts. If a later
-write fails, activation restores replaced or removed profiles and deletes files
-created by that invocation. It rechecks each target just before changing it and
-assumes no other process edits those profile files concurrently. The portable
-manifest packages the skills-based core.
+reply. They verify the packaged optional profiles and run the profile bootstrap.
+If it reports conflicts, preserve the user's files and explain the conflict. The
+portable manifest packages the skills-based core.
 Codex-specific profile provisioning is a separate integration layer, so never
 present those profiles as a portable Agent Plugins field.
 

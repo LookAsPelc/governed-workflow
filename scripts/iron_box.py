@@ -3,9 +3,9 @@
 
 Validation remains read-only.  ``activate-package`` is deliberately narrower
 than an installer: after validation it creates missing packaged payloads,
-upgrades only exact historical profiles, preserves matching user files, rejects
-conflicts, and rolls back all profile changes if a later write fails.  It never
-controls a client or edits a user's broader configuration.
+upgrades recognized legacy profiles, preserves matching user files, and rejects
+conflicts. A partial atomic write can be completed by running activation again.
+It never controls a client or edits a user's broader configuration.
 """
 
 from __future__ import annotations
@@ -14,7 +14,6 @@ import argparse
 import hashlib
 import json
 import os
-import sys
 import tempfile
 from pathlib import Path
 from pathlib import PurePosixPath, PureWindowsPath
@@ -313,25 +312,6 @@ def _atomic_write(target: Path, contents: bytes) -> None:
         raise
 
 
-def _stage_backup(target: Path, contents: bytes) -> Path:
-    """Save prior bytes beside a target so rollback can restore by rename."""
-    fd, temporary = tempfile.mkstemp(
-        prefix=f".{target.name}.iron-box-backup-", dir=str(target.parent)
-    )
-    try:
-        with os.fdopen(fd, "wb") as backup:
-            backup.write(contents)
-            backup.flush()
-            os.fsync(backup.fileno())
-    except BaseException:
-        try:
-            os.unlink(temporary)
-        except FileNotFoundError:
-            pass
-        raise
-    return Path(temporary)
-
-
 def _assert_target_matches_snapshot(
     codex_home: Path, target: Path, expected: bytes | None
 ) -> None:
@@ -350,13 +330,13 @@ def _assert_target_matches_snapshot(
 
 
 def activate_package(package_root: Path, codex_home: Path, *, dry_run: bool = False) -> int:
-    """Activate packaged roles and Jax assets as one idempotent operation.
+    """Activate packaged roles and Jax assets as an idempotent operation.
 
-    Existing matching files are left untouched. Only byte-exact 0.3.1 profiles
-    can be upgraded or retired; other differences are conflicts. All targets
-    are preflighted and rechecked before mutation. Existing legacy files are
-    backed up before changes and restored by atomic rename if a later operation
-    fails. Activation assumes no concurrent process edits these profile targets.
+    Existing matching files are left untouched. Only exact legacy profiles can
+    be upgraded or retired; other differences are conflicts. All targets are
+    checked before mutation and again before their individual atomic change.
+    If a write fails, completed changes remain safe to retry on the next run.
+    Concurrent activations of the same home are not serialized.
     """
     manifest = validate_package(package_root)
     declared = set(manifest["runtimeRequired"])
@@ -364,6 +344,7 @@ def activate_package(package_root: Path, codex_home: Path, *, dry_run: bool = Fa
         if source_relative not in declared:
             raise SystemExit(f"bootstrap payload is not runtimeRequired: {source_relative}")
     regular_directory(codex_home)
+
     profile_changes: list[tuple[Path, bytes | None, bytes | None]] = []
     for source_relative, target_relative in BOOTSTRAP_FILES:
         source = package_root.joinpath(*source_relative.split("/"))
@@ -402,9 +383,8 @@ def activate_package(package_root: Path, codex_home: Path, *, dry_run: bool = Fa
             raise SystemExit(f"bootstrap conflict: {target}")
         retired_changes.append((target, None, current_bytes))
 
-    # Remove the obsolete profile first so rollback also exercises restoration
-    # of retired files if any later profile write fails.
-    changes = retired_changes + profile_changes
+    # Retire the old peer last so a failed profile write remains retryable.
+    changes = profile_changes + retired_changes
     if dry_run:
         for target, contents, previous in changes:
             if contents is None:
@@ -416,86 +396,13 @@ def activate_package(package_root: Path, codex_home: Path, *, dry_run: bool = Fa
             print("bootstrap: already active")
         return 0
 
-    # Backups are fully staged before the first profile change. A staging error
-    # therefore leaves CODEX_HOME untouched.
-    staged: list[tuple[Path, bytes | None, bytes | None, Path | None]] = []
-    try:
-        for target, contents, previous in changes:
-            backup = None
-            if previous is not None:
-                backup = _stage_backup(target, previous)
-            staged.append((target, contents, previous, backup))
-    except BaseException as staging_error:
-        cleanup_errors = []
-        for _, _, _, backup in staged:
-            if backup is None:
-                continue
-            try:
-                backup.unlink(missing_ok=True)
-            except OSError as cleanup_error:
-                cleanup_errors.append(f"{backup}: {cleanup_error}")
-        if cleanup_errors:
-            raise RuntimeError(
-                "backup staging failed and temporary cleanup was incomplete: "
-                + "; ".join(cleanup_errors)
-            ) from staging_error
-        raise
+    for target, contents, previous in changes:
+        _assert_target_matches_snapshot(codex_home, target, previous)
+        if contents is None:
+            target.unlink()
+        else:
+            _atomic_write(target, contents)
 
-    attempted: list[tuple[Path, bytes | None, bytes | None, Path | None]] = []
-    try:
-        for target, contents, previous, backup in staged:
-            _assert_target_matches_snapshot(codex_home, target, previous)
-            attempted.append((target, contents, previous, backup))
-            if contents is None:
-                target.unlink()
-            else:
-                _atomic_write(target, contents)
-    except BaseException as activation_error:
-        rollback_errors = []
-        for target, contents, _, backup in reversed(attempted):
-            try:
-                if backup is not None:
-                    os.replace(backup, target)
-                elif target.exists():
-                    regular_target(target)
-                    if target.read_bytes() != contents:
-                        raise OSError("created target changed before rollback")
-                    target.unlink()
-            except BaseException as rollback_error:
-                detail = f"{target}: {rollback_error}"
-                if backup is not None and backup.exists():
-                    detail += f" (recovery copy retained at {backup})"
-                rollback_errors.append(detail)
-
-        attempted_targets = {target for target, _, _, _ in attempted}
-        for target, _, _, backup in staged:
-            if backup is None or target in attempted_targets:
-                continue
-            try:
-                backup.unlink(missing_ok=True)
-            except OSError as cleanup_error:
-                rollback_errors.append(f"{backup}: {cleanup_error}")
-        if rollback_errors:
-            raise RuntimeError(
-                "activation failed and rollback was incomplete: "
-                + "; ".join(rollback_errors)
-            ) from activation_error
-        raise
-
-    cleanup_errors = []
-    for _, _, _, backup in staged:
-        if backup is None:
-            continue
-        try:
-            backup.unlink(missing_ok=True)
-        except OSError as cleanup_error:
-            cleanup_errors.append(f"{backup}: {cleanup_error}")
-    if cleanup_errors:
-        print(
-            "bootstrap: warning: could not remove recovery copy: "
-            + "; ".join(cleanup_errors),
-            file=sys.stderr,
-        )
     if changes:
         print(f"bootstrap: applied {len(changes)} package changes")
     else:

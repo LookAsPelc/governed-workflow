@@ -186,13 +186,15 @@ upgrade_agents = upgrade / "agents"
 upgrade_agents.mkdir(parents=True)
 for filename in (*current_profiles, "sol-advisor.toml"):
     shutil.copyfile(fixtures / filename, upgrade_agents / filename)
+custom_profile = upgrade_agents / "personal-profile.toml"
+custom_profile.write_bytes(b"keep this user profile\n")
 result = activate(upgrade)
 assert result.returncode == 0, result.stderr
 assert "bootstrap: applied 8 package changes" in result.stdout
 for filename, target in current_profiles.items():
     assert (upgrade / target).read_bytes() == (root / "assets/codex/agents" / filename).read_bytes()
 assert not (upgrade / retired_profile).exists()
-assert not list(upgrade_agents.glob(".*.iron-box-backup-*"))
+assert custom_profile.read_bytes() == b"keep this user profile\n"
 assert activate(upgrade).stdout.strip() == "bootstrap: already active"
 
 # Dry-run reports the planned upgrade and retirement without writing targets or
@@ -209,9 +211,9 @@ assert result.returncode == 0, result.stderr
 assert "bootstrap: would replace " in result.stdout
 assert "bootstrap: would remove " in result.stdout
 assert "bootstrap: would create " in result.stdout
+assert result.stdout.strip().splitlines()[-1].startswith("bootstrap: would remove ")
 assert (dry_run_agents / "luna-worker.toml").read_bytes() == before_worker
 assert (dry_run_agents / "sol-advisor.toml").read_bytes() == before_advisor
-assert not list(dry_run_agents.glob(".*.iron-box-backup-*"))
 assert not (dry_run_home / "pets").exists()
 
 # A modified legacy profile is a conflict. No earlier profile or asset is
@@ -245,45 +247,54 @@ assert (retired_agents / "luna-worker.toml").read_bytes() == (fixtures / "luna-w
 assert retired.read_bytes() == (fixtures / "sol-advisor.toml").read_bytes() + b"local edit\n"
 assert not (modified_retired / "pets").exists()
 
-# If a later write keeps failing, restore both a previously upgraded profile
-# and the retired file removed earlier without invoking that writer again.
-rollback = temporary / "rollback"
-rollback_agents = rollback / "agents"
-rollback_agents.mkdir(parents=True)
-shutil.copyfile(fixtures / "luna-worker.toml", rollback_agents / "luna-worker.toml")
-shutil.copyfile(fixtures / "sol-advisor.toml", rollback_agents / "sol-advisor.toml")
+# A later atomic write can leave a mixed legacy/current state. The next run
+# recognizes that state and completes activation without losing old profiles.
+retry_home = temporary / "retry-after-failure"
+retry_agents = retry_home / "agents"
+retry_agents.mkdir(parents=True)
+for filename in (*current_profiles, "sol-advisor.toml"):
+    shutil.copyfile(fixtures / filename, retry_agents / filename)
 original_write = iron_box._atomic_write
 write_count = 0
-failed = False
 
-def fail_persistently_after_first_write(target, contents):
-    global write_count, failed
-    if failed:
-        raise OSError("persistent simulated write failure")
+def fail_after_two_writes(target, contents):
+    global write_count
     write_count += 1
-    if write_count == 2:
-        failed = True
-        raise OSError("persistent simulated write failure")
+    if write_count > 2:
+        raise OSError("injected persistent write failure")
     return original_write(target, contents)
 
-iron_box._atomic_write = fail_persistently_after_first_write
+iron_box._atomic_write = fail_after_two_writes
 try:
-    iron_box.activate_package(root, rollback)
+    iron_box.activate_package(root, retry_home)
 except OSError as error:
-    assert str(error) == "persistent simulated write failure"
+    assert str(error) == "injected persistent write failure"
 else:
     raise AssertionError("activation unexpectedly succeeded after injected failure")
 finally:
     iron_box._atomic_write = original_write
-assert write_count == 2
-assert (rollback_agents / "luna-worker.toml").read_bytes() == (fixtures / "luna-worker.toml").read_bytes()
-assert (rollback_agents / "sol-advisor.toml").read_bytes() == (fixtures / "sol-advisor.toml").read_bytes()
-assert not (rollback_agents / "luna-researcher.toml").exists()
-assert not (rollback / "pets").exists()
-assert not list(rollback_agents.glob(".*.iron-box-backup-*"))
+assert write_count == 3
+for filename, target in current_profiles.items():
+    expected = (root / "assets/codex/agents" / filename).read_bytes()
+    if filename in ("luna-worker.toml", "luna-researcher.toml"):
+        assert (retry_home / target).read_bytes() == expected
+    else:
+        assert (retry_agents / filename).read_bytes() == (fixtures / filename).read_bytes()
+assert (retry_agents / "sol-advisor.toml").read_bytes() == (fixtures / "sol-advisor.toml").read_bytes()
+assert not (retry_home / "pets").exists()
 
-# A target edited after preflight is left intact; earlier changes are rolled
-# back from staged copies when the immediately-before-write check detects it.
+result = activate(retry_home)
+assert result.returncode == 0, result.stderr
+assert "bootstrap: applied 6 package changes" in result.stdout
+for filename, target in current_profiles.items():
+    assert (retry_home / target).read_bytes() == (root / "assets/codex/agents" / filename).read_bytes()
+assert not (retry_home / retired_profile).exists()
+assert (retry_home / "pets/jax/pet.json").read_bytes() == (root / "assets/pets/jax/pet.json").read_bytes()
+assert (retry_home / "pets/jax/spritesheet.webp").read_bytes() == (root / "assets/pets/jax/spritesheet.webp").read_bytes()
+assert activate(retry_home).stdout.strip() == "bootstrap: already active"
+
+# A target edited after preflight is left intact; earlier per-file writes are
+# safe and a retry can continue except where the user's edit is a conflict.
 concurrent_existing = temporary / "concurrent-existing"
 concurrent_agents = concurrent_existing / "agents"
 concurrent_agents.mkdir(parents=True)
@@ -310,10 +321,9 @@ else:
     raise AssertionError("activation overwrote a profile changed after preflight")
 finally:
     iron_box._assert_target_matches_snapshot = original_check
-assert (concurrent_agents / "luna-worker.toml").read_bytes() == (fixtures / "luna-worker.toml").read_bytes()
+assert (concurrent_agents / "luna-worker.toml").read_bytes() == (root / "assets/codex/agents/luna-worker.toml").read_bytes()
 assert researcher.read_bytes() == concurrent_bytes
 assert (concurrent_agents / "sol-advisor.toml").read_bytes() == (fixtures / "sol-advisor.toml").read_bytes()
-assert not list(concurrent_agents.glob(".*.iron-box-backup-*"))
 assert not (concurrent_existing / "pets").exists()
 
 # A target that was missing at preflight must remain absent until its own
@@ -344,7 +354,6 @@ finally:
     iron_box._assert_target_matches_snapshot = original_check
 assert worker.read_bytes() == concurrent_worker_bytes
 assert (missing_agents / "sol-advisor.toml").read_bytes() == (fixtures / "sol-advisor.toml").read_bytes()
-assert not list(missing_agents.glob(".*.iron-box-backup-*"))
 assert not (concurrent_missing / "pets").exists()
 PY
 
