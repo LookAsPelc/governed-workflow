@@ -6,7 +6,7 @@ Iron Box is an Agent Plugin with a portable skills core and optional Codex integ
 
 ## Model routing
 
-We recommend GPT-6 Sol with Low reasoning for the root/manager, increasing to Medium for harder coordination or judgment. Luna handles normal bounded work and routine independent checks with GPT-6 Luna at High reasoning; raise effort to xhigh or max when task difficulty justifies it. Sol is an optional peer for difficult architecture, risk, or judgment, with effort scaled from Low toward High as needed.
+GPT-6 Sol at Low reasoning is an intentional default for the thin root/manager: it focuses on intent, routing, and evidence review, and can raise effort to Medium when coordination needs it. Luna handles normal bounded work and routine independent checks with GPT-6 Luna at High reasoning; use xhigh or max when task difficulty justifies it. The custom profiles pin their model identity but leave reasoning effort to the manager when each task is launched. Sol is one optional peer for difficult architecture, risk, or judgment, with effort scaled from Low toward High as needed.
 
 The shared [`templates/codex-desktop.recommended.toml`](templates/codex-desktop.recommended.toml) provides desktop workflow defaults. The [Codex config reference](https://learn.chatgpt.com/docs/config-file/config-reference) documents `model_reasoning_effort`. Static configuration does not establish model availability in a client or account; onboarding checks supported capabilities and reports unavailable versus unverified.
 

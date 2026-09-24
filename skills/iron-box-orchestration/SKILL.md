@@ -11,7 +11,7 @@ Route normal bounded work and routine independent checks to GPT-6 Luna at High r
 
 Superpowers handles the surrounding development process: specifications, implementation plans, debugging, progress artifacts, and recovery when useful. Keep small tasks light and use existing project code, Git, tests, specifications, and plans when resuming work. Do not create parallel Iron Box task or recovery state.
 
-When spawning a worker, choose `fork_turns` to control parent-conversation history: `none` passes no history, `all` passes the full history, and a positive number passes that many recent turns. Include only the context the worker needs.
+Default `fork_turns` to `none` and make the task packet self-contained. Use a small positive slice only when recent conversation context matters and cannot be summarized in the packet; use `all` only when the complete interaction is necessary. `none` passes no parent history, a positive number passes that many recent turns, and `all` passes the full history.
 
 ## Delegate bounded work
 

@@ -29,7 +29,6 @@ ROLES = (
     "assets/codex/agents/luna-researcher.toml",
     "assets/codex/agents/luna-debugger.toml",
     "assets/codex/agents/luna-verifier.toml",
-    "assets/codex/agents/sol-advisor.toml",
     "assets/codex/agents/sol-peer.toml",
 )
 JAX_ASSETS = (
@@ -127,7 +126,7 @@ def main() -> None:
             str(cached_root),
             env=bootstrap_env,
         )
-        assert "bootstrap: activated 8 package files" in bootstrap_output
+        assert "bootstrap: activated 7 package files" in bootstrap_output
         for source_relative, target_relative in BOOTSTRAP_TARGETS.items():
             source = cached_root / source_relative
             target = activation_home / target_relative

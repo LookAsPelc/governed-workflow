@@ -2,7 +2,6 @@ name = "luna_worker"
 description = "Luna worker for bounded work with task-specific instructions."
 nickname_candidates = ["Luna", "Auri", "Bast", "Ludis", "Moon", "Foxen", "Shaed"]
 model = "gpt-6-luna"
-model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 
 developer_instructions = """

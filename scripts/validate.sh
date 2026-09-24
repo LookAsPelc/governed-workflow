@@ -73,12 +73,11 @@ if (width, height) != (1536, 2288):
 print("valid Jax pet asset")
 
 roles = {
-    "luna-worker.toml": ("luna_worker", "gpt-6-luna", "high", "workspace-write"),
-    "luna-researcher.toml": ("luna_researcher", "gpt-6-luna", "high", "read-only"),
-    "luna-debugger.toml": ("luna_debugger", "gpt-6-luna", "high", "workspace-write"),
-    "luna-verifier.toml": ("luna_verifier", "gpt-6-luna", "high", "read-only"),
-    "sol-advisor.toml": ("sol_advisor", "gpt-6-sol", "low", "read-only"),
-    "sol-peer.toml": ("sol_peer", "gpt-6-sol", "low", "read-only"),
+    "luna-worker.toml": ("luna_worker", "gpt-6-luna", "workspace-write"),
+    "luna-researcher.toml": ("luna_researcher", "gpt-6-luna", "read-only"),
+    "luna-debugger.toml": ("luna_debugger", "gpt-6-luna", "workspace-write"),
+    "luna-verifier.toml": ("luna_verifier", "gpt-6-luna", "read-only"),
+    "sol-peer.toml": ("sol_peer", "gpt-6-sol", "read-only"),
 }
 roles_dir = root / "assets" / "codex" / "agents"
 runtime_profiles = {
@@ -88,14 +87,14 @@ runtime_profiles = {
 }
 if runtime_profiles != {f"assets/codex/agents/{filename}" for filename in roles}:
     raise SystemExit("runtime package must declare exactly the supported Codex profiles")
-for filename, (name, model, effort, sandbox) in roles.items():
+for filename, (name, model, sandbox) in roles.items():
     path = roles_dir / filename
     with path.open("rb") as handle:
         role = tomllib.load(handle)
     if (
         role.get("name") != name
         or role.get("model") != model
-        or role.get("model_reasoning_effort") != effort
+        or "model_reasoning_effort" in role
         or role.get("sandbox_mode") != sandbox
         or not isinstance(role.get("developer_instructions"), str)
     ):

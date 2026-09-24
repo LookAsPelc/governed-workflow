@@ -23,7 +23,7 @@ jobs:
       - name: Enforce Desktop path boundary
         run: bash tests/test-desktop-path.sh
       - name: Install pinned Codex CLI
-        run: npm install --global @openai/codex@0.146.0-alpha.3.1
+        run: npm install --global @openai/codex@0.156.1
       - name: Test local marketplace install and runtime payload
         run: python3 tests/test-marketplace-e2e.py
 
@@ -34,6 +34,6 @@ jobs:
       - name: Enforce Desktop path boundary (static only)
         run: python tests/check_desktop_path.py
       - name: Install pinned Codex CLI
-        run: npm install --global @openai/codex@0.146.0-alpha.3.1
+        run: npm install --global @openai/codex@0.156.1
       - name: Test local marketplace install and runtime payload
         run: python tests/test-marketplace-e2e.py

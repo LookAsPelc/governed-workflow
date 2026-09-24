@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "name": "iron-box",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "runtimeRequired": [
     "plugin.json",
     "iron-box-package.json",
@@ -22,7 +22,6 @@
     "assets/codex/agents/luna-researcher.toml",
     "assets/codex/agents/luna-debugger.toml",
     "assets/codex/agents/luna-verifier.toml",
-    "assets/codex/agents/sol-advisor.toml",
     "assets/codex/agents/sol-peer.toml",
     "assets/pets/jax/pet.json",
     "assets/pets/jax/spritesheet.webp"
