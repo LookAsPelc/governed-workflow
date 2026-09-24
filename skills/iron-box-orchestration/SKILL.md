@@ -7,7 +7,7 @@ description: Small, governed Codex routing for bounded work, verification, and e
 
 Iron Box handles delegation and verification around native development workflows. The root owns the user goal, scope, decomposition, routing, integration, acceptance decisions, and communication. The root does not perform routine implementation, tests, lint, or similar execution; delegate that work to workers and review the relevant evidence before accepting results. Agents work in English. Write inter-agent packets, reports, code, and comments in English; write artifact prose for its audience and user-facing communication in the user's language.
 
-Route normal bounded work and routine independent checks to GPT-6 Luna at High reasoning. Use xhigh for interacting constraints or debugging that needs deeper reasoning; use max only for a difficult, still-bounded task where the extra effort is justified. Use GPT-6 Sol as an optional peer for difficult architecture, security, or high-value judgment, with effort scaled from Low toward High as needed.
+Set the model and reasoning effort explicitly on every Iron Box dispatch; never rely on a client or global default for effort. Route normal bounded work and routine independent checks to GPT-6 Luna at High reasoning. Use xhigh for interacting constraints or debugging that needs deeper reasoning; use max only for a difficult, still-bounded task where the extra effort is justified. Use GPT-6 Sol as an optional peer for difficult architecture, security, or high-value judgment, with effort chosen for the question, often from Low through High.
 
 Superpowers handles the surrounding development process: specifications, implementation plans, debugging, progress artifacts, and recovery when useful. Keep small tasks light and use existing project code, Git, tests, specifications, and plans when resuming work. Do not create parallel Iron Box task or recovery state.
 
@@ -15,7 +15,7 @@ Default `fork_turns` to `none` and make the task packet self-contained. Use a sm
 
 ## Delegate bounded work
 
-Before dispatch, state the worker role, model, reasoning effort, and context being passed. Give it a concise packet with the objective, scope and constraints, current artifact, acceptance criteria, evidence needed, and escalation point. Keep concurrent writers on separate files or responsibilities; serialize overlapping edits. Workers do not spawn descendants or widen scope without direction.
+Before every dispatch, set and state the worker role, model, reasoning effort, and context being passed. The reasoning effort is a required task-level choice even when the profile or client has a default. Give it a concise packet with the objective, scope and constraints, current artifact, acceptance criteria, evidence needed, and escalation point. Keep concurrent writers on separate files or responsibilities; serialize overlapping edits. Workers do not spawn descendants or widen scope without direction.
 
 Keep the root context focused: delegate routine exploration and execution, request concise reports of results, artifacts, checks, and issues, and inspect only the evidence needed for the next decision. Follow-ups should carry the delta and needed evidence rather than repeat the full conversation. Treat reports as claims and review the actual source, diff, runtime, or other relevant artifact.
 

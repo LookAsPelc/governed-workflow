@@ -8,10 +8,12 @@ required report layout.
 ## Core journey and consent
 
 The package gate and internal profile bootstrap happen before the first visible
-reply. They verify the packaged optional profiles, copy only missing files, and
-roll back newly created files if a write fails. Existing matching files are
-left alone; a different existing role is a real conflict to explain, not a
-reason to overwrite it. The portable manifest packages the skills-based core.
+reply. They verify the packaged optional profiles, create missing files, and
+upgrade or remove only byte-exact profiles from version 0.3.1. Existing matching
+files are left alone; modified or unknown profiles are conflicts. If a later
+write fails, activation restores replaced or removed profiles and deletes files
+created by that invocation. The portable manifest packages the skills-based
+core.
 Codex-specific profile provisioning is a separate integration layer, so never
 present those profiles as a portable Agent Plugins field.
 
@@ -71,10 +73,12 @@ working. Report installation and hook review only after a live check.
 
 Use `templates/codex-desktop.recommended.toml` as the single shared
 workflow-core reference. It sets GPT-6 Sol with Low reasoning by default and
-GPT-6 Luna with High reasoning for subagents; recommend Medium for harder root
-orchestration and xhigh or max for unusually difficult bounded work when
-justified. The template intentionally leaves environment-specific choices
-unset. Merge only supported keys through the client's documented path,
+GPT-6 Luna as the default subagent model, while leaving subagent reasoning
+effort unset. Choose and pass effort explicitly on every dispatch: recommend
+High for normal Luna work, use xhigh or max for unusually difficult bounded
+work when justified, and scale Sol effort to the question. Recommend Medium for
+harder root orchestration. The template intentionally leaves
+environment-specific choices unset. Merge only supported keys through the client's documented path,
 preserve unrelated values, and offer a recommendation based on observed
 capabilities and the user's goals rather than blindly copying every value. A
 static template does not prove live model availability: report GPT-6 Sol as

@@ -91,7 +91,7 @@ agents = desktop["agents"]
 assert desktop["model"] == "gpt-6-sol"
 assert desktop["model_reasoning_effort"] == "low"
 assert agents["default_subagent_model"] == "gpt-6-luna"
-assert agents["default_subagent_reasoning_effort"] == "high"
+assert "default_subagent_reasoning_effort" not in agents
 PY
 
 # Marketplace catalogs may carry independent names, while the Iron Box version
@@ -139,12 +139,124 @@ fi
 mkdir -p "$tmp/codex-home"
 python3 "$root/scripts/iron_box.py" activate-package "$tmp/codex-home" >"$tmp/bootstrap.out"
 python3 "$root/scripts/iron_box.py" activate-package "$tmp/codex-home" >>"$tmp/bootstrap.out"
-grep -Fq 'bootstrap: activated 7 package files' "$tmp/bootstrap.out" || fail 'bootstrap did not create all package payloads'
+grep -Fq 'bootstrap: applied 7 package changes' "$tmp/bootstrap.out" || fail 'bootstrap did not create all package payloads'
 grep -Fq 'bootstrap: already active' "$tmp/bootstrap.out" || fail 'bootstrap was not idempotent'
 printf 'different role\n' >"$tmp/codex-home/agents/luna-worker.toml"
 if python3 "$root/scripts/iron_box.py" activate-package "$tmp/codex-home" >"$tmp/bootstrap-conflict.out" 2>&1; then
   fail 'bootstrap accepted a conflicting role file'
 fi
+
+# Only exact profiles from the committed 0.3.1 payload may be replaced or
+# retired. Fixtures are frozen from c526ce5775ff7239bd0069803cb688da0be7f280.
+python3 - "$root" "$tmp/legacy-tests" <<'PY'
+import hashlib
+import pathlib
+import shutil
+import subprocess
+import sys
+
+root = pathlib.Path(sys.argv[1])
+temporary = pathlib.Path(sys.argv[2])
+fixtures = root / "tests/fixtures/iron-box-0.3.1/agents"
+current_profiles = {
+    "luna-worker.toml": "agents/luna-worker.toml",
+    "luna-researcher.toml": "agents/luna-researcher.toml",
+    "luna-debugger.toml": "agents/luna-debugger.toml",
+    "luna-verifier.toml": "agents/luna-verifier.toml",
+    "sol-peer.toml": "agents/sol-peer.toml",
+}
+retired_profile = "agents/sol-advisor.toml"
+sys.path.insert(0, str(root / "scripts"))
+import iron_box
+
+for filename, target in current_profiles.items():
+    assert hashlib.sha256((fixtures / filename).read_bytes()).hexdigest() == iron_box.UPGRADABLE_PROFILE_SHA256[target]
+assert hashlib.sha256((fixtures / "sol-advisor.toml").read_bytes()).hexdigest() == iron_box.RETIRED_PROFILE_SHA256[retired_profile]
+
+def activate(home):
+    return subprocess.run(
+        [sys.executable, str(root / "scripts/iron_box.py"), "activate-package", str(home)],
+        capture_output=True,
+        text=True,
+    )
+
+# Exact old profiles upgrade, the retired profile is removed, and rerunning is
+# idempotent after the 0.4.0 payloads are active.
+upgrade = temporary / "upgrade"
+upgrade_agents = upgrade / "agents"
+upgrade_agents.mkdir(parents=True)
+for filename in (*current_profiles, "sol-advisor.toml"):
+    shutil.copyfile(fixtures / filename, upgrade_agents / filename)
+result = activate(upgrade)
+assert result.returncode == 0, result.stderr
+assert "bootstrap: applied 8 package changes" in result.stdout
+for filename, target in current_profiles.items():
+    assert (upgrade / target).read_bytes() == (root / "assets/codex/agents" / filename).read_bytes()
+assert not (upgrade / retired_profile).exists()
+assert activate(upgrade).stdout.strip() == "bootstrap: already active"
+
+# A modified legacy profile is a conflict. No earlier profile or asset is
+# changed, even though several exact legacy profiles were already preflighted.
+modified_legacy = temporary / "modified-legacy"
+modified_agents = modified_legacy / "agents"
+modified_agents.mkdir(parents=True)
+for filename in current_profiles:
+    shutil.copyfile(fixtures / filename, modified_agents / filename)
+shutil.copyfile(fixtures / "sol-advisor.toml", modified_agents / "sol-advisor.toml")
+changed_sol_peer = modified_agents / "sol-peer.toml"
+changed_sol_peer.write_bytes(changed_sol_peer.read_bytes() + b"local edit\n")
+result = activate(modified_legacy)
+assert result.returncode != 0 and "bootstrap conflict" in result.stderr
+assert (modified_agents / "luna-worker.toml").read_bytes() == (fixtures / "luna-worker.toml").read_bytes()
+assert changed_sol_peer.read_bytes() == (fixtures / "sol-peer.toml").read_bytes() + b"local edit\n"
+assert (modified_agents / "sol-advisor.toml").read_bytes() == (fixtures / "sol-advisor.toml").read_bytes()
+assert not (modified_legacy / "pets").exists()
+
+# A modified retired profile also blocks all otherwise-valid upgrades.
+modified_retired = temporary / "modified-retired"
+retired_agents = modified_retired / "agents"
+retired_agents.mkdir(parents=True)
+shutil.copyfile(fixtures / "luna-worker.toml", retired_agents / "luna-worker.toml")
+shutil.copyfile(fixtures / "sol-advisor.toml", retired_agents / "sol-advisor.toml")
+retired = retired_agents / "sol-advisor.toml"
+retired.write_bytes(retired.read_bytes() + b"local edit\n")
+result = activate(modified_retired)
+assert result.returncode != 0 and "bootstrap conflict" in result.stderr
+assert (retired_agents / "luna-worker.toml").read_bytes() == (fixtures / "luna-worker.toml").read_bytes()
+assert retired.read_bytes() == (fixtures / "sol-advisor.toml").read_bytes() + b"local edit\n"
+assert not (modified_retired / "pets").exists()
+
+# If a later atomic write fails, restore both a previously upgraded profile and
+# the retired file removed earlier in the same activation.
+rollback = temporary / "rollback"
+rollback_agents = rollback / "agents"
+rollback_agents.mkdir(parents=True)
+shutil.copyfile(fixtures / "luna-worker.toml", rollback_agents / "luna-worker.toml")
+shutil.copyfile(fixtures / "sol-advisor.toml", rollback_agents / "sol-advisor.toml")
+original_write = iron_box._atomic_write
+write_count = 0
+
+def fail_second_write(target, contents):
+    global write_count
+    write_count += 1
+    if write_count == 2:
+        raise OSError("simulated later write failure")
+    return original_write(target, contents)
+
+iron_box._atomic_write = fail_second_write
+try:
+    iron_box.activate_package(root, rollback)
+except OSError as error:
+    assert str(error) == "simulated later write failure"
+else:
+    raise AssertionError("activation unexpectedly succeeded after injected failure")
+finally:
+    iron_box._atomic_write = original_write
+assert (rollback_agents / "luna-worker.toml").read_bytes() == (fixtures / "luna-worker.toml").read_bytes()
+assert (rollback_agents / "sol-advisor.toml").read_bytes() == (fixtures / "sol-advisor.toml").read_bytes()
+assert not (rollback_agents / "luna-researcher.toml").exists()
+assert not (rollback / "pets").exists()
+PY
 
 # Validate a runtime-only checkout after removing development fixtures. This
 # protects the package contract from accidentally making CI-only files part of

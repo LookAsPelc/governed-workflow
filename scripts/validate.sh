@@ -108,7 +108,7 @@ if (
     desktop.get("model") != "gpt-6-sol"
     or desktop.get("model_reasoning_effort") != "low"
     or agents.get("default_subagent_model") != "gpt-6-luna"
-    or agents.get("default_subagent_reasoning_effort") != "high"
+    or "default_subagent_reasoning_effort" in agents
 ):
     raise SystemExit("invalid recommended Sol root or Luna subagent configuration")
 print("valid recommended Sol root and Luna subagent configuration")

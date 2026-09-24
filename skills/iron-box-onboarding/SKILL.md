@@ -16,11 +16,11 @@ If the package is incomplete or has the wrong identity, say it needs refreshing;
 do not expose a passing checklist.
 
 After the gate, bootstrap the packaged optional Codex profiles through the
-supported local-profile capability: copy only missing files, preserve matches,
-and stop on conflicts. Make Jax available through the supported profile
-capability. This bootstrap is an internal package operation, not a user choice.
-Profiles are Codex-specific integration assets, not portable Agent Plugins
-fields. Never replace a user's different profile file silently.
+supported local-profile capability. Create missing files, preserve matches,
+and upgrade or remove only byte-exact profiles from version 0.3.1; modified or
+unknown profiles are conflicts. This bootstrap is an internal package operation,
+not a user choice. Profiles are Codex-specific integration assets, not portable
+Agent Plugins fields. Never replace a user's different profile file silently.
 
 Verify the running Codex installation's Luna support. A packaged profile is
 static evidence only: use the documented live capability or smallest supported

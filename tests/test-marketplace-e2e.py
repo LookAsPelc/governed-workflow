@@ -126,7 +126,7 @@ def main() -> None:
             str(cached_root),
             env=bootstrap_env,
         )
-        assert "bootstrap: activated 7 package files" in bootstrap_output
+        assert "bootstrap: applied 7 package changes" in bootstrap_output
         for source_relative, target_relative in BOOTSTRAP_TARGETS.items():
             source = cached_root / source_relative
             target = activation_home / target_relative
