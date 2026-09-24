@@ -11,7 +11,7 @@ Set the model and reasoning effort explicitly on every Iron Box dispatch; never 
 
 Superpowers handles the surrounding development process: specifications, implementation plans, debugging, progress artifacts, and recovery when useful. Keep small tasks light and use existing project code, Git, tests, specifications, and plans when resuming work. Do not create parallel Iron Box task or recovery state.
 
-Default `fork_turns` to `none` and make the task packet self-contained. Use a small positive slice only when recent conversation context matters and cannot be summarized in the packet; use `all` only when the complete interaction is necessary. `none` passes no parent history, a positive number passes that many recent turns, and `all` passes the full history.
+Default `fork_turns` to `none` and make the task packet self-contained. Use a small positive slice when recent context matters and cannot be summarized. Use `all` when the complete interaction is needed and the inherited parent model and effort already match the selected route; this host inherits both settings with `all`. Otherwise use `none` or a small slice and pass the chosen model and effort explicitly. `none` passes no parent history, a positive number passes that many recent turns, and `all` passes the full history.
 
 ## Delegate bounded work
 

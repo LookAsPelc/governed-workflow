@@ -14,6 +14,7 @@ import argparse
 import hashlib
 import json
 import os
+import sys
 import tempfile
 from pathlib import Path
 from pathlib import PurePosixPath, PureWindowsPath
@@ -312,13 +313,50 @@ def _atomic_write(target: Path, contents: bytes) -> None:
         raise
 
 
+def _stage_backup(target: Path, contents: bytes) -> Path:
+    """Save prior bytes beside a target so rollback can restore by rename."""
+    fd, temporary = tempfile.mkstemp(
+        prefix=f".{target.name}.iron-box-backup-", dir=str(target.parent)
+    )
+    try:
+        with os.fdopen(fd, "wb") as backup:
+            backup.write(contents)
+            backup.flush()
+            os.fsync(backup.fileno())
+    except BaseException:
+        try:
+            os.unlink(temporary)
+        except FileNotFoundError:
+            pass
+        raise
+    return Path(temporary)
+
+
+def _assert_target_matches_snapshot(
+    codex_home: Path, target: Path, expected: bytes | None
+) -> None:
+    """Fail closed if a target no longer matches the preflight snapshot."""
+    regular_directory(codex_home)
+    current = codex_home
+    for component in target.relative_to(codex_home).parts[:-1]:
+        current = current / component
+        regular_directory(current)
+    regular_target(target)
+    if expected is None:
+        if target.exists():
+            raise SystemExit(f"bootstrap target changed after preflight: {target}")
+    elif not target.exists() or target.read_bytes() != expected:
+        raise SystemExit(f"bootstrap target changed after preflight: {target}")
+
+
 def activate_package(package_root: Path, codex_home: Path, *, dry_run: bool = False) -> int:
     """Activate packaged roles and Jax assets as one idempotent operation.
 
     Existing matching files are left untouched. Only byte-exact 0.3.1 profiles
     can be upgraded or retired; other differences are conflicts. All targets
-    are preflighted before changes, and any later failure restores replaced or
-    removed files and deletes files created by this invocation.
+    are preflighted and rechecked before mutation. Existing legacy files are
+    backed up before changes and restored by atomic rename if a later operation
+    fails. Activation assumes no concurrent process edits these profile targets.
     """
     manifest = validate_package(package_root)
     declared = set(manifest["runtimeRequired"])
@@ -378,30 +416,86 @@ def activate_package(package_root: Path, codex_home: Path, *, dry_run: bool = Fa
             print("bootstrap: already active")
         return 0
 
-    applied: list[tuple[Path, bytes | None]] = []
+    # Backups are fully staged before the first profile change. A staging error
+    # therefore leaves CODEX_HOME untouched.
+    staged: list[tuple[Path, bytes | None, bytes | None, Path | None]] = []
     try:
         for target, contents, previous in changes:
+            backup = None
+            if previous is not None:
+                backup = _stage_backup(target, previous)
+            staged.append((target, contents, previous, backup))
+    except BaseException as staging_error:
+        cleanup_errors = []
+        for _, _, _, backup in staged:
+            if backup is None:
+                continue
+            try:
+                backup.unlink(missing_ok=True)
+            except OSError as cleanup_error:
+                cleanup_errors.append(f"{backup}: {cleanup_error}")
+        if cleanup_errors:
+            raise RuntimeError(
+                "backup staging failed and temporary cleanup was incomplete: "
+                + "; ".join(cleanup_errors)
+            ) from staging_error
+        raise
+
+    attempted: list[tuple[Path, bytes | None, bytes | None, Path | None]] = []
+    try:
+        for target, contents, previous, backup in staged:
+            _assert_target_matches_snapshot(codex_home, target, previous)
+            attempted.append((target, contents, previous, backup))
             if contents is None:
                 target.unlink()
             else:
                 _atomic_write(target, contents)
-            applied.append((target, previous))
     except BaseException as activation_error:
-        rollback_errors: list[str] = []
-        for target, previous in reversed(applied):
+        rollback_errors = []
+        for target, contents, _, backup in reversed(attempted):
             try:
-                if previous is None:
-                    target.unlink(missing_ok=True)
-                else:
-                    _atomic_write(target, previous)
+                if backup is not None:
+                    os.replace(backup, target)
+                elif target.exists():
+                    regular_target(target)
+                    if target.read_bytes() != contents:
+                        raise OSError("created target changed before rollback")
+                    target.unlink()
             except BaseException as rollback_error:
-                rollback_errors.append(f"{target}: {rollback_error}")
+                detail = f"{target}: {rollback_error}"
+                if backup is not None and backup.exists():
+                    detail += f" (recovery copy retained at {backup})"
+                rollback_errors.append(detail)
+
+        attempted_targets = {target for target, _, _, _ in attempted}
+        for target, _, _, backup in staged:
+            if backup is None or target in attempted_targets:
+                continue
+            try:
+                backup.unlink(missing_ok=True)
+            except OSError as cleanup_error:
+                rollback_errors.append(f"{backup}: {cleanup_error}")
         if rollback_errors:
             raise RuntimeError(
                 "activation failed and rollback was incomplete: "
                 + "; ".join(rollback_errors)
             ) from activation_error
         raise
+
+    cleanup_errors = []
+    for _, _, _, backup in staged:
+        if backup is None:
+            continue
+        try:
+            backup.unlink(missing_ok=True)
+        except OSError as cleanup_error:
+            cleanup_errors.append(f"{backup}: {cleanup_error}")
+    if cleanup_errors:
+        print(
+            "bootstrap: warning: could not remove recovery copy: "
+            + "; ".join(cleanup_errors),
+            file=sys.stderr,
+        )
     if changes:
         print(f"bootstrap: applied {len(changes)} package changes")
     else:
