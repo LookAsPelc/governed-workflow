@@ -91,7 +91,7 @@ agents = desktop["agents"]
 assert desktop["model"] == "gpt-6-sol"
 assert desktop["model_reasoning_effort"] == "low"
 assert agents["default_subagent_model"] == "gpt-6-luna"
-assert agents["default_subagent_reasoning_effort"] == "high"
+assert "default_subagent_reasoning_effort" not in agents
 PY
 
 # Marketplace catalogs may carry independent names, while the Iron Box version
@@ -139,12 +139,223 @@ fi
 mkdir -p "$tmp/codex-home"
 python3 "$root/scripts/iron_box.py" activate-package "$tmp/codex-home" >"$tmp/bootstrap.out"
 python3 "$root/scripts/iron_box.py" activate-package "$tmp/codex-home" >>"$tmp/bootstrap.out"
-grep -Fq 'bootstrap: activated 7 package files' "$tmp/bootstrap.out" || fail 'bootstrap did not create all package payloads'
+grep -Fq 'bootstrap: applied 7 package changes' "$tmp/bootstrap.out" || fail 'bootstrap did not create all package payloads'
 grep -Fq 'bootstrap: already active' "$tmp/bootstrap.out" || fail 'bootstrap was not idempotent'
 printf 'different role\n' >"$tmp/codex-home/agents/luna-worker.toml"
 if python3 "$root/scripts/iron_box.py" activate-package "$tmp/codex-home" >"$tmp/bootstrap-conflict.out" 2>&1; then
   fail 'bootstrap accepted a conflicting role file'
 fi
+
+# Only exact profiles from the committed 0.3.1 payload may be replaced or
+# retired. Fixtures are frozen from c526ce5775ff7239bd0069803cb688da0be7f280.
+python3 - "$root" "$tmp/legacy-tests" <<'PY'
+import hashlib
+import pathlib
+import shutil
+import subprocess
+import sys
+
+root = pathlib.Path(sys.argv[1])
+temporary = pathlib.Path(sys.argv[2])
+fixtures = root / "tests/fixtures/iron-box-0.3.1/agents"
+current_profiles = {
+    "luna-worker.toml": "agents/luna-worker.toml",
+    "luna-researcher.toml": "agents/luna-researcher.toml",
+    "luna-debugger.toml": "agents/luna-debugger.toml",
+    "luna-verifier.toml": "agents/luna-verifier.toml",
+    "sol-peer.toml": "agents/sol-peer.toml",
+}
+retired_profile = "agents/sol-advisor.toml"
+sys.path.insert(0, str(root / "scripts"))
+import iron_box
+
+for filename, target in current_profiles.items():
+    assert hashlib.sha256((fixtures / filename).read_bytes()).hexdigest() == iron_box.UPGRADABLE_PROFILE_SHA256[target]
+assert hashlib.sha256((fixtures / "sol-advisor.toml").read_bytes()).hexdigest() == iron_box.RETIRED_PROFILE_SHA256[retired_profile]
+
+def activate(home, dry_run=False):
+    command = [sys.executable, str(root / "scripts/iron_box.py"), "activate-package", str(home)]
+    if dry_run:
+        command.append("--dry-run")
+    return subprocess.run(command, capture_output=True, text=True)
+
+# Exact old profiles upgrade, the retired profile is removed, and rerunning is
+# idempotent after the 0.4.0 payloads are active.
+upgrade = temporary / "upgrade"
+upgrade_agents = upgrade / "agents"
+upgrade_agents.mkdir(parents=True)
+for filename in (*current_profiles, "sol-advisor.toml"):
+    shutil.copyfile(fixtures / filename, upgrade_agents / filename)
+custom_profile = upgrade_agents / "personal-profile.toml"
+custom_profile.write_bytes(b"keep this user profile\n")
+result = activate(upgrade)
+assert result.returncode == 0, result.stderr
+assert "bootstrap: applied 8 package changes" in result.stdout
+for filename, target in current_profiles.items():
+    assert (upgrade / target).read_bytes() == (root / "assets/codex/agents" / filename).read_bytes()
+assert not (upgrade / retired_profile).exists()
+assert custom_profile.read_bytes() == b"keep this user profile\n"
+assert activate(upgrade).stdout.strip() == "bootstrap: already active"
+
+# Dry-run reports the planned upgrade and retirement without writing targets or
+# staging backup files.
+dry_run_home = temporary / "dry-run"
+dry_run_agents = dry_run_home / "agents"
+dry_run_agents.mkdir(parents=True)
+shutil.copyfile(fixtures / "luna-worker.toml", dry_run_agents / "luna-worker.toml")
+shutil.copyfile(fixtures / "sol-advisor.toml", dry_run_agents / "sol-advisor.toml")
+before_worker = (dry_run_agents / "luna-worker.toml").read_bytes()
+before_advisor = (dry_run_agents / "sol-advisor.toml").read_bytes()
+result = activate(dry_run_home, dry_run=True)
+assert result.returncode == 0, result.stderr
+assert "bootstrap: would replace " in result.stdout
+assert "bootstrap: would remove " in result.stdout
+assert "bootstrap: would create " in result.stdout
+assert result.stdout.strip().splitlines()[-1].startswith("bootstrap: would remove ")
+assert (dry_run_agents / "luna-worker.toml").read_bytes() == before_worker
+assert (dry_run_agents / "sol-advisor.toml").read_bytes() == before_advisor
+assert not (dry_run_home / "pets").exists()
+
+# A modified legacy profile is a conflict. No earlier profile or asset is
+# changed, even though several exact legacy profiles were already preflighted.
+modified_legacy = temporary / "modified-legacy"
+modified_agents = modified_legacy / "agents"
+modified_agents.mkdir(parents=True)
+for filename in current_profiles:
+    shutil.copyfile(fixtures / filename, modified_agents / filename)
+shutil.copyfile(fixtures / "sol-advisor.toml", modified_agents / "sol-advisor.toml")
+changed_sol_peer = modified_agents / "sol-peer.toml"
+changed_sol_peer.write_bytes(changed_sol_peer.read_bytes() + b"local edit\n")
+result = activate(modified_legacy)
+assert result.returncode != 0 and "bootstrap conflict" in result.stderr
+assert (modified_agents / "luna-worker.toml").read_bytes() == (fixtures / "luna-worker.toml").read_bytes()
+assert changed_sol_peer.read_bytes() == (fixtures / "sol-peer.toml").read_bytes() + b"local edit\n"
+assert (modified_agents / "sol-advisor.toml").read_bytes() == (fixtures / "sol-advisor.toml").read_bytes()
+assert not (modified_legacy / "pets").exists()
+
+# A modified retired profile also blocks all otherwise-valid upgrades.
+modified_retired = temporary / "modified-retired"
+retired_agents = modified_retired / "agents"
+retired_agents.mkdir(parents=True)
+shutil.copyfile(fixtures / "luna-worker.toml", retired_agents / "luna-worker.toml")
+shutil.copyfile(fixtures / "sol-advisor.toml", retired_agents / "sol-advisor.toml")
+retired = retired_agents / "sol-advisor.toml"
+retired.write_bytes(retired.read_bytes() + b"local edit\n")
+result = activate(modified_retired)
+assert result.returncode != 0 and "bootstrap conflict" in result.stderr
+assert (retired_agents / "luna-worker.toml").read_bytes() == (fixtures / "luna-worker.toml").read_bytes()
+assert retired.read_bytes() == (fixtures / "sol-advisor.toml").read_bytes() + b"local edit\n"
+assert not (modified_retired / "pets").exists()
+
+# A later atomic write can leave a mixed legacy/current state. The next run
+# recognizes that state and completes activation without losing old profiles.
+retry_home = temporary / "retry-after-failure"
+retry_agents = retry_home / "agents"
+retry_agents.mkdir(parents=True)
+for filename in (*current_profiles, "sol-advisor.toml"):
+    shutil.copyfile(fixtures / filename, retry_agents / filename)
+original_write = iron_box._atomic_write
+write_count = 0
+
+def fail_after_two_writes(target, contents):
+    global write_count
+    write_count += 1
+    if write_count > 2:
+        raise OSError("injected persistent write failure")
+    return original_write(target, contents)
+
+iron_box._atomic_write = fail_after_two_writes
+try:
+    iron_box.activate_package(root, retry_home)
+except OSError as error:
+    assert str(error) == "injected persistent write failure"
+else:
+    raise AssertionError("activation unexpectedly succeeded after injected failure")
+finally:
+    iron_box._atomic_write = original_write
+assert write_count == 3
+for filename, target in current_profiles.items():
+    expected = (root / "assets/codex/agents" / filename).read_bytes()
+    if filename in ("luna-worker.toml", "luna-researcher.toml"):
+        assert (retry_home / target).read_bytes() == expected
+    else:
+        assert (retry_agents / filename).read_bytes() == (fixtures / filename).read_bytes()
+assert (retry_agents / "sol-advisor.toml").read_bytes() == (fixtures / "sol-advisor.toml").read_bytes()
+assert not (retry_home / "pets").exists()
+
+result = activate(retry_home)
+assert result.returncode == 0, result.stderr
+assert "bootstrap: applied 6 package changes" in result.stdout
+for filename, target in current_profiles.items():
+    assert (retry_home / target).read_bytes() == (root / "assets/codex/agents" / filename).read_bytes()
+assert not (retry_home / retired_profile).exists()
+assert (retry_home / "pets/jax/pet.json").read_bytes() == (root / "assets/pets/jax/pet.json").read_bytes()
+assert (retry_home / "pets/jax/spritesheet.webp").read_bytes() == (root / "assets/pets/jax/spritesheet.webp").read_bytes()
+assert activate(retry_home).stdout.strip() == "bootstrap: already active"
+
+# A target edited after preflight is left intact; earlier per-file writes are
+# safe and a retry can continue except where the user's edit is a conflict.
+concurrent_existing = temporary / "concurrent-existing"
+concurrent_agents = concurrent_existing / "agents"
+concurrent_agents.mkdir(parents=True)
+for filename in ("luna-worker.toml", "luna-researcher.toml", "sol-advisor.toml"):
+    shutil.copyfile(fixtures / filename, concurrent_agents / filename)
+researcher = concurrent_agents / "luna-researcher.toml"
+concurrent_bytes = b"external edit after preflight\n"
+original_check = iron_box._assert_target_matches_snapshot
+injected = False
+
+def edit_existing_before_check(home, target, expected):
+    global injected
+    if target == researcher and not injected:
+        researcher.write_bytes(concurrent_bytes)
+        injected = True
+    return original_check(home, target, expected)
+
+iron_box._assert_target_matches_snapshot = edit_existing_before_check
+try:
+    iron_box.activate_package(root, concurrent_existing)
+except SystemExit as error:
+    assert "changed after preflight" in str(error)
+else:
+    raise AssertionError("activation overwrote a profile changed after preflight")
+finally:
+    iron_box._assert_target_matches_snapshot = original_check
+assert (concurrent_agents / "luna-worker.toml").read_bytes() == (root / "assets/codex/agents/luna-worker.toml").read_bytes()
+assert researcher.read_bytes() == concurrent_bytes
+assert (concurrent_agents / "sol-advisor.toml").read_bytes() == (fixtures / "sol-advisor.toml").read_bytes()
+assert not (concurrent_existing / "pets").exists()
+
+# A target that was missing at preflight must remain absent until its own
+# create step; a newly appeared user file blocks activation and stays intact.
+concurrent_missing = temporary / "concurrent-missing"
+missing_agents = concurrent_missing / "agents"
+missing_agents.mkdir(parents=True)
+shutil.copyfile(fixtures / "sol-advisor.toml", missing_agents / "sol-advisor.toml")
+worker = missing_agents / "luna-worker.toml"
+concurrent_worker_bytes = b"external file appeared after preflight\n"
+injected = False
+
+def add_missing_before_check(home, target, expected):
+    global injected
+    if target == worker and expected is None and not injected:
+        worker.write_bytes(concurrent_worker_bytes)
+        injected = True
+    return original_check(home, target, expected)
+
+iron_box._assert_target_matches_snapshot = add_missing_before_check
+try:
+    iron_box.activate_package(root, concurrent_missing)
+except SystemExit as error:
+    assert "changed after preflight" in str(error)
+else:
+    raise AssertionError("activation overwrote a target that appeared after preflight")
+finally:
+    iron_box._assert_target_matches_snapshot = original_check
+assert worker.read_bytes() == concurrent_worker_bytes
+assert (missing_agents / "sol-advisor.toml").read_bytes() == (fixtures / "sol-advisor.toml").read_bytes()
+assert not (concurrent_missing / "pets").exists()
+PY
 
 # Validate a runtime-only checkout after removing development fixtures. This
 # protects the package contract from accidentally making CI-only files part of

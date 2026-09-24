@@ -7,15 +7,15 @@ description: Small, governed Codex routing for bounded work, verification, and e
 
 Iron Box handles delegation and verification around native development workflows. The root owns the user goal, scope, decomposition, routing, integration, acceptance decisions, and communication. The root does not perform routine implementation, tests, lint, or similar execution; delegate that work to workers and review the relevant evidence before accepting results. Agents work in English. Write inter-agent packets, reports, code, and comments in English; write artifact prose for its audience and user-facing communication in the user's language.
 
-Route normal bounded work and routine independent checks to GPT-6 Luna at High reasoning. Use xhigh for interacting constraints or debugging that needs deeper reasoning; use max only for a difficult, still-bounded task where the extra effort is justified. Use GPT-6 Sol as an optional peer for difficult architecture, security, or high-value judgment, with effort scaled from Low toward High as needed.
+Choose the role for each dispatch and set its reasoning effort explicitly. The role profile supplies the model; override it only when task routing requires a different model. Route normal bounded work and routine independent checks to GPT-6 Luna at High reasoning. Use xhigh for interacting constraints or debugging that needs deeper reasoning; use max only for difficult, still-bounded tasks where the extra effort is justified. Use GPT-6 Sol as an optional peer for difficult architecture, security, or high-value judgment, with effort chosen for the question.
 
 Superpowers handles the surrounding development process: specifications, implementation plans, debugging, progress artifacts, and recovery when useful. Keep small tasks light and use existing project code, Git, tests, specifications, and plans when resuming work. Do not create parallel Iron Box task or recovery state.
 
-Default `fork_turns` to `none` and make the task packet self-contained. Use a small positive slice only when recent conversation context matters and cannot be summarized in the packet; use `all` only when the complete interaction is necessary. `none` passes no parent history, a positive number passes that many recent turns, and `all` passes the full history.
+Default `fork_turns` to `none` and make the task packet self-contained. Use a small positive slice when recent context matters and cannot be summarized; use `all` when the full interaction is truly needed. `none` passes no parent history, a positive number passes that many recent turns, and `all` passes the full history.
 
 ## Delegate bounded work
 
-Before dispatch, state the worker role, model, reasoning effort, and context being passed. Give it a concise packet with the objective, scope and constraints, current artifact, acceptance criteria, evidence needed, and escalation point. Keep concurrent writers on separate files or responsibilities; serialize overlapping edits. Workers do not spawn descendants or widen scope without direction.
+Before dispatch, give a concise packet with the objective, scope and constraints, current artifact, acceptance criteria, evidence needed, and escalation point. Keep concurrent writers on separate files or responsibilities; serialize overlapping edits. Workers do not spawn descendants or widen scope without direction.
 
 Keep the root context focused: delegate routine exploration and execution, request concise reports of results, artifacts, checks, and issues, and inspect only the evidence needed for the next decision. Follow-ups should carry the delta and needed evidence rather than repeat the full conversation. Treat reports as claims and review the actual source, diff, runtime, or other relevant artifact.
 
