@@ -90,8 +90,10 @@ pretend a shell copy changed the Desktop profile.
 
 ## Recovery and reporting
 
-Preserve unrelated configuration and retain a backup before changing an
+For user configuration changes outside the packaged profile bootstrap,
+preserve unrelated configuration and retain a backup before changing an
 existing runtime file. Report the result naturally: what changed, what stayed
 the same, and any uncertainty or unsupported capability. Roll back the bounded
-change if verification fails. Ask for a restart only when the client documents
-that it is needed, then re-check the relevant live capability.
+user-configuration change if verification fails. Ask for a restart only when
+the client documents that it is needed, then re-check the relevant live
+capability.

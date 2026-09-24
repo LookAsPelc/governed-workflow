@@ -4,7 +4,7 @@
 Validation remains read-only.  ``activate-package`` is deliberately narrower
 than an installer: after validation it creates missing packaged payloads,
 upgrades recognized legacy profiles, preserves matching user files, and rejects
-conflicts. A partial atomic write can be completed by running activation again.
+conflicts. An interrupted activation can be completed by running it again.
 It never controls a client or edits a user's broader configuration.
 """
 
