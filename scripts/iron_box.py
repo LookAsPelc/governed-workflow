@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 """Package validation and the bounded Iron Box runtime bootstrap.
 
-Validation remains read-only.  ``activate-package`` is deliberately narrower
+Validation remains read-only. ``activate-package`` is deliberately narrower
 than an installer: after validation it creates missing packaged payloads,
-upgrades recognized legacy profiles, preserves matching user files, and rejects
-conflicts. An interrupted activation can be completed by running it again.
-It never controls a client or edits a user's broader configuration.
+preserves matching user files, and rejects conflicts. An interrupted activation
+can be completed by running it again. It never controls a client or edits a
+user's broader configuration.
 """
 
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import tempfile
@@ -36,21 +35,6 @@ BOOTSTRAP_FILES = (
     ("assets/pets/jax/pet.json", "pets/jax/pet.json"),
     ("assets/pets/jax/spritesheet.webp", "pets/jax/spritesheet.webp"),
 )
-
-# SHA-256 fingerprints of the committed 0.3.1 profile payloads in
-# c526ce5775ff7239bd0069803cb688da0be7f280. Only these exact files are safe
-# to replace during the one supported profile upgrade.
-UPGRADABLE_PROFILE_SHA256 = {
-    "agents/luna-worker.toml": "41609ae68d027dcfc6d269ee367d519cf616637f04ddded84788e4b29be25279",
-    "agents/luna-researcher.toml": "2088adfcd95b898b22c5618d2bae9c0d59dc475c85c7e0ce31ea2265ac8b2971",
-    "agents/luna-debugger.toml": "520c0da6d6bca2ec3e21b1d492c1bfdef6c00b645aaefca6f0c16d4c08d6b2da",
-    "agents/luna-verifier.toml": "f43359aa2760044cc70bd4f075e30a08d461bb4aa9c71bf943688edf0584598c",
-    "agents/sol-peer.toml": "dc1f7b64aead91ea540a04257856073b216b5507c2e6e484c6ab295cde96d675",
-}
-RETIRED_PROFILE_SHA256 = {
-    "agents/sol-advisor.toml": "ff7b254438a61264f5542e1004fe1bbceefe4d029108a279f66d9e3411671ec4",
-}
-
 
 def _normalise_declared_path(value: Any) -> str:
     """Validate a package-relative POSIX path without touching the filesystem."""
@@ -332,11 +316,11 @@ def _assert_target_matches_snapshot(
 def activate_package(package_root: Path, codex_home: Path, *, dry_run: bool = False) -> int:
     """Activate packaged roles and Jax assets as an idempotent operation.
 
-    Existing matching files are left untouched. Only exact legacy profiles can
-    be upgraded or retired; other differences are conflicts. All targets are
-    checked before mutation and again before their individual atomic change.
-    If a write fails, completed changes remain safe to retry on the next run.
-    Concurrent activations of the same home are not serialized.
+    Existing matching files are left untouched; any differing file at a
+    managed path is a conflict. All targets are checked before mutation and
+    again before their individual atomic change. If a write fails, completed
+    changes remain safe to retry on the next run. Concurrent activations of
+    the same home are not serialized.
     """
     manifest = validate_package(package_root)
     declared = set(manifest["runtimeRequired"])
@@ -345,7 +329,7 @@ def activate_package(package_root: Path, codex_home: Path, *, dry_run: bool = Fa
             raise SystemExit(f"bootstrap payload is not runtimeRequired: {source_relative}")
     regular_directory(codex_home)
 
-    profile_changes: list[tuple[Path, bytes | None, bytes | None]] = []
+    changes: list[tuple[Path, bytes]] = []
     for source_relative, target_relative in BOOTSTRAP_FILES:
         source = package_root.joinpath(*source_relative.split("/"))
         target = codex_home.joinpath(*target_relative.split("/"))
@@ -357,51 +341,23 @@ def activate_package(package_root: Path, codex_home: Path, *, dry_run: bool = Fa
         regular_target(target)
         source_bytes = source.read_bytes()
         if not target.exists():
-            profile_changes.append((target, source_bytes, None))
+            changes.append((target, source_bytes))
             continue
         current_bytes = target.read_bytes()
         if current_bytes == source_bytes:
             continue
-        legacy_hash = UPGRADABLE_PROFILE_SHA256.get(target_relative)
-        if legacy_hash and hashlib.sha256(current_bytes).hexdigest() == legacy_hash:
-            profile_changes.append((target, source_bytes, current_bytes))
-            continue
         raise SystemExit(f"bootstrap conflict: {target}")
 
-    retired_changes: list[tuple[Path, bytes | None, bytes | None]] = []
-    for target_relative, legacy_hash in RETIRED_PROFILE_SHA256.items():
-        target = codex_home.joinpath(*target_relative.split("/"))
-        current = codex_home
-        for component in target.relative_to(codex_home).parts[:-1]:
-            current = current / component
-            regular_directory(current)
-        regular_target(target)
-        if not target.exists():
-            continue
-        current_bytes = target.read_bytes()
-        if hashlib.sha256(current_bytes).hexdigest() != legacy_hash:
-            raise SystemExit(f"bootstrap conflict: {target}")
-        retired_changes.append((target, None, current_bytes))
-
-    # Retire the old peer last so a failed profile write remains retryable.
-    changes = profile_changes + retired_changes
     if dry_run:
-        for target, contents, previous in changes:
-            if contents is None:
-                operation = "remove"
-            else:
-                operation = "replace" if previous is not None else "create"
-            print(f"bootstrap: would {operation} {target}")
+        for target, _ in changes:
+            print(f"bootstrap: would create {target}")
         if not changes:
             print("bootstrap: already active")
         return 0
 
-    for target, contents, previous in changes:
-        _assert_target_matches_snapshot(codex_home, target, previous)
-        if contents is None:
-            target.unlink()
-        else:
-            _atomic_write(target, contents)
+    for target, contents in changes:
+        _assert_target_matches_snapshot(codex_home, target, None)
+        _atomic_write(target, contents)
 
     if changes:
         print(f"bootstrap: applied {len(changes)} package changes")

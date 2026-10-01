@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "name": "iron-box",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "runtimeRequired": [
     "plugin.json",
     "iron-box-package.json",
@@ -31,12 +31,6 @@
     "tests/test-marketplace-e2e.py",
     "tests/test-iron-box-scripts.sh",
     "tests/test-desktop-path.sh",
-    "tests/check_desktop_path.py",
-    "tests/fixtures/iron-box-0.3.1/agents/luna-debugger.toml",
-    "tests/fixtures/iron-box-0.3.1/agents/luna-researcher.toml",
-    "tests/fixtures/iron-box-0.3.1/agents/luna-verifier.toml",
-    "tests/fixtures/iron-box-0.3.1/agents/luna-worker.toml",
-    "tests/fixtures/iron-box-0.3.1/agents/sol-advisor.toml",
-    "tests/fixtures/iron-box-0.3.1/agents/sol-peer.toml"
+    "tests/check_desktop_path.py"
   ]
 }

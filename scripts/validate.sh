@@ -77,7 +77,7 @@ roles = {
     "luna-researcher.toml": ("luna_researcher", "gpt-6-luna", "read-only"),
     "luna-debugger.toml": ("luna_debugger", "gpt-6-luna", "workspace-write"),
     "luna-verifier.toml": ("luna_verifier", "gpt-6-luna", "read-only"),
-    "sol-peer.toml": ("sol_peer", "gpt-6-sol", "read-only"),
+    "sol-peer.toml": ("sol_peer", "gpt-6.1-sol", "read-only"),
 }
 roles_dir = root / "assets" / "codex" / "agents"
 runtime_profiles = {
@@ -105,7 +105,7 @@ with (root / "templates" / "codex-desktop.recommended.toml").open("rb") as handl
     desktop = tomllib.load(handle)
 agents = desktop.get("agents", {})
 if (
-    desktop.get("model") != "gpt-6-sol"
+    desktop.get("model") != "gpt-6.1-sol"
     or desktop.get("model_reasoning_effort") != "low"
     or agents.get("default_subagent_model") != "gpt-6-luna"
     or "default_subagent_reasoning_effort" in agents

@@ -2,7 +2,7 @@
 # Apply only the values supported by the current client.
 # Environment-specific UI preferences stay unset; derive them from the user.
 
-model = "gpt-6-sol"
+model = "gpt-6.1-sol"
 model_reasoning_effort = "low"
 # Use medium reasoning for harder orchestration.
 approvals_reviewer = "auto_review"
