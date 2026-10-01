@@ -3,8 +3,8 @@
   "name": "iron-box",
   "version": "0.4.1",
   "description": "Portable governed skills for bounded agent work.",
-  "author": {"name": "Lukáš Pelc", "email": "pelc.it@gmail.com"},
-  "homepage": "https://github.com/LookAsPelc/governed-workflow",
+  "author": {"name": "Lukáš Pec", "email": "pelc.it@gmail.com", "url": "https://lookaspelc.github.io/"},
+  "homepage": "https://lookaspelc.github.io/",
   "repository": "https://github.com/LookAsPelc/governed-workflow",
   "license": "MIT",
   "keywords": ["agent", "orchestration", "workflow"]
