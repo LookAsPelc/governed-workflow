@@ -5,28 +5,25 @@ description: Small, governed Codex routing for bounded work, verification, and e
 
 # Iron Box orchestration
 
-Iron Box handles delegation and verification around native development workflows. The root owns the user goal, scope, decomposition, routing, integration, acceptance decisions, and communication. The root does not perform routine implementation, tests, lint, or similar execution; delegate that work to workers and review the relevant evidence before accepting results. Agents work in English. Write inter-agent packets, reports, code, and comments in English; write artifact prose for its audience and user-facing communication in the user's language.
+The root is accountable for the user's goal, scope, decisions, integration, and communication. It chooses how to do the work and whether delegation adds value across the remaining task, including dispatch and handoff costs. Handle small, obvious actions directly when delegation would cost more. Give progress and problems plainly; involve the user when intent or scope needs their decision.
 
-Choose the role for each dispatch and set its reasoning effort explicitly. The role profile supplies the model; override it only when task routing requires a different model. Route normal bounded work and routine independent checks to the latest Luna profile at High reasoning. Use xhigh for interacting constraints or debugging that needs deeper reasoning; use max only for difficult, still-bounded tasks where the extra effort is justified. Use the latest Sol profile as an optional peer for difficult architecture, security, or high-value judgment, with effort chosen from Low through High for the question.
+Inter-agent assignments, reports, code, and comments are in English. Write artifacts for their intended audience and communicate with the user in the user's language. Use Superpowers and the project's existing code, tests, specifications, and plans when they help; do not maintain parallel Iron Box task or recovery state.
 
-Superpowers handles the surrounding development process: specifications, implementation plans, debugging, progress artifacts, and recovery when useful. Keep small tasks light and use existing project code, Git, tests, specifications, and plans when resuming work. Do not create parallel Iron Box task or recovery state.
+## Route the work
 
-Default `fork_turns` to `none` and make the task packet self-contained. Use a small positive slice when recent context matters and cannot be summarized; use `all` when the full interaction is truly needed. `none` passes no parent history, a positive number passes that many recent turns, and `all` passes the full history.
+Choose Luna or Sol and set reasoning effort for the task. The role profile supplies the model; override it only when routing calls for a different model.
 
-## Delegate bounded work
+- Use the latest Luna profile at High for normal bounded work, XHigh for reconciling conflicting constraints or debugging with competing hypotheses, and Max for difficult but bounded exploration.
+- Use the latest Sol profile for a narrow, evidence-backed consultation at Low, to compare alternatives and consequences at Medium, or for difficult architecture and consequential uncertain judgment at High.
 
-Before dispatch, give a concise packet with the objective, scope and constraints, current artifact, acceptance criteria, evidence needed, and escalation point. Keep concurrent writers on separate files or responsibilities; serialize overlapping edits. Workers do not spawn descendants or widen scope without direction.
+Set effort when a worker is started; follow-ups keep it. Consider the remaining work and value of a fresh context before starting another worker just to change effort. Choose `fork_turns` to preserve the context the worker needs: `none`, a recent slice (which may retain useful details lost in a summary), or `all`. Count rediscovery and rework as well as prompt length.
 
-Keep the root context focused: delegate routine exploration and execution, request concise reports of results, artifacts, checks, and issues, and inspect only the evidence needed for the next decision. Follow-ups should carry the delta and needed evidence rather than repeat the full conversation. Treat reports as claims and review the actual source, diff, runtime, or other relevant artifact.
+Delegate bounded work when it saves meaningful effort across the task. Keep concurrent writers on separate files or responsibilities and serialize overlapping edits. Batch related work; avoid dispatching tiny isolated steps. Reuse the same worker for related follow-ups while its context remains useful. Start a fresh worker for unrelated work, independent review, stale context, or when the current worker is stuck.
 
-Reuse a worker when its context still fits a follow-up on the same problem. Start fresh for an independent review, unrelated scope, stale or overloaded context, or demonstrated fixation.
+Keep assignments and handoffs proportional to the task. Give the worker enough goal, constraints, ownership, and acceptance context to proceed, then add only relevant deltas in follow-ups.
 
-After dispatch, let workers finish or report a meaningful status. Follow up or interrupt for user cancellation or reprioritization, a safety issue, or material new information that changes the outcome. Elapsed time or silence alone does not justify intervention; redirection can make Luna abandon earlier work, so treat it as a scope change.
+## Coordinate and verify
 
-Use Sol when architectural, security, or high-value judgment warrants it, conceptual uncertainty persists, or a well-evidenced Luna attempt failed. Sol is a peer and escalation path, not a required gate or step in a model ladder. Use the smallest worker set that adds independent value.
+Let workers finish and report actual blockers; silence or elapsed time alone is not a reason to prompt or interrupt. Intervene when new information materially changes direction or the user changes priorities.
 
-## Verify evidence
-
-For independent judgment, prefer a fresh read-only Luna reviewer. Ask for `PASS`, `REVISE`, or `BLOCKED`, with findings, evidence, and uncertainty. A deterministic check may close a small, clear task; otherwise, weigh the reviewer report against the actual workspace. If the workspace may keep changing, review a frozen commit or artifact version. Keep static configuration evidence distinct from live client or model capability.
-
-Do not push, publish, deploy, change production, or make destructive external changes without explicit user authority. Escalate unresolved scope, safety, or capability questions instead of silently widening the task.
+Scale verification to the work. Check the actual artifact and relevant evidence before accepting it. A separate read-only review can add value when independent judgment may find a meaningful issue; routine completion may need only a deterministic check. The root remains responsible for understanding the accepted result. Distinguish static configuration from demonstrated live capability.

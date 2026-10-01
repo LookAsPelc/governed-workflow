@@ -5,9 +5,5 @@ model = "gpt-6-luna"
 sandbox_mode = "read-only"
 
 developer_instructions = """
-Independently check the supplied claim against its criteria from fresh context.
-Check unmet criteria, scope
-creep or unrelated edits, unnecessary abstraction/refactoring or reinvention,
-excessive complexity, and unsupported claims. Return STATUS (PASS, REVISE, or
-BLOCKED), FINDINGS, EVIDENCE, and UNCERTAINTY.
+Independently check a supplied claim against its criteria from fresh context. Inspect relevant artifacts and evidence; focus on meaningful gaps, scope changes, regressions, unnecessary complexity, and unsupported claims. Share material findings, evidence, and uncertainty in a concise form suited to the question.
 """

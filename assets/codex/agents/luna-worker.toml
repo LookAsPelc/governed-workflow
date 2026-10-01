@@ -5,8 +5,5 @@ model = "gpt-6-luna"
 sandbox_mode = "workspace-write"
 
 developer_instructions = """
-Complete the bounded task in the supplied packet. Preserve unrelated and
-concurrent work; avoid opportunistic redesign, refactoring, or scope expansion.
-Return STATUS (DONE, ESCALATE, or BLOCKED), evidence, changed files, and
-remaining uncertainty. The manager verifies this report before accepting it.
+Complete the bounded task in the supplied context. Preserve unrelated and concurrent work; avoid opportunistic redesign, refactoring, or scope expansion. Return a concise account of the result, affected artifacts, useful checks or evidence, and unresolved issues.
 """

@@ -2,19 +2,19 @@
 
 ![Iron Box](assets/app-icon.png)
 
-Iron Box is an Agent Plugin with a portable skills core and optional Codex integration. It keeps a root/manager focused on intent, routing, verification, and integration; Luna handles bounded execution; and Sol is a proportional escalation peer. Development workflow artifacts remain the responsibility of native tools such as Superpowers.
+Iron Box is an Agent Plugin with a portable skills core and optional Codex integration. It keeps the root accountable for the goal, decisions, coordination, and integration. Luna handles bounded work; Sol is an optional peer for consequential questions. Development workflow artifacts remain the responsibility of native tools such as Superpowers.
 
 ## Model routing
 
-GPT-6.1 Sol at Low reasoning is an intentional default for the thin root/manager: it focuses on intent, routing, and evidence review; use Medium for harder coordination. Luna handles normal bounded work and routine independent checks with GPT-6 Luna at High reasoning; use xhigh or max when task difficulty justifies it. The custom profiles pin their model identity but leave reasoning effort to the manager when each task is launched. Sol is one optional peer for difficult architecture, risk, or judgment, with effort scaled from Low through High as needed.
+GPT-6.1 Sol at Low is the recommended root default; Medium can help with harder coordination. GPT-6 Luna at High is the default for bounded work; use XHigh for reconciling conflicting constraints or debugging with competing hypotheses, and Max for difficult bounded exploration. The custom profiles pin model identity and leave subagent effort to the manager when each task starts. See the [orchestration contract](skills/iron-box-orchestration/SKILL.md) for worker routing and context decisions.
 
 The shared [`templates/codex-desktop.recommended.toml`](templates/codex-desktop.recommended.toml) provides desktop workflow defaults. The [Codex config reference](https://learn.chatgpt.com/docs/config-file/config-reference) documents `model_reasoning_effort`. Static configuration does not establish model availability in a client or account; onboarding checks supported capabilities and reports unavailable versus unverified.
 
 ## Workflow
 
-Iron Box routes bounded work and verifies evidence; the [orchestration contract](skills/iron-box-orchestration/SKILL.md) covers Luna effort, worker reuse, fresh review, Sol escalation, and recovery. The [why Iron Box essay](docs/why-iron-box.md) explains the design rationale. Superpowers supplies the surrounding development artifacts; Iron Box does not maintain a parallel task or recovery state.
+Iron Box routes bounded work and verifies evidence; the [orchestration contract](skills/iron-box-orchestration/SKILL.md) covers effort selection, worker reuse, context choice, proportional verification, and Sol consultation. The [why Iron Box essay](docs/why-iron-box.md) explains the design rationale. Superpowers supplies the surrounding development artifacts; Iron Box does not maintain a parallel task or recovery state.
 
-The root reviews relevant source, diffs, runtime behavior, or other artifacts and distinguishes static configuration from live client/model capability. Pushing, publishing, deployment, production changes, and destructive external changes require explicit user authority.
+The root checks relevant source, diffs, runtime behavior, or other artifacts and distinguishes static configuration from live client/model capability.
 
 ## Installation
 

@@ -7,5 +7,5 @@ sandbox_mode = "workspace-write"
 developer_instructions = """
 Diagnose before repairing. Reproduce the reported failure, collect direct evidence, isolate the likely cause, and make the smallest justified change inside the assigned scope. Do not make speculative shotgun edits or turn debugging into a refactor.
 
-Run the relevant regression check after the change. Report reproduction evidence, cause, changed files, exact commands and results, remaining uncertainty, and PASS, ESCALATE, or BLOCKED. Your report remains an unverified claim until independently checked.
+Verify the fix with a relevant regression check. Report the cause, changed files, useful evidence and checks, and unresolved uncertainty in a concise form. The manager reviews the result against the request.
 """

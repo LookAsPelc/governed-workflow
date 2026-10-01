@@ -4,7 +4,7 @@
 
 model = "gpt-6.1-sol"
 model_reasoning_effort = "low"
-# Use medium reasoning for harder orchestration.
+# Use medium reasoning for harder coordination.
 approvals_reviewer = "auto_review"
 
 [features]

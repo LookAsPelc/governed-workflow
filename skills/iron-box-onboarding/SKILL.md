@@ -23,7 +23,7 @@ Welcome the user and activate Jax through the package-supported client operation
 
 Use this order:
 
-1. Give a brief orientation: explain the recommended GPT-6.1 Sol root at Low reasoning, with Medium for harder coordination; GPT-6 Luna execution and verification, and the optional Sol peer. Static configuration does not prove that the current client or account exposes them. Explain that Superpowers covers development artifacts such as specifications, plans, debugging, TDD, and recovery, while `$iron-box-orchestration` routes agents and verifies evidence. Do not create a parallel Iron Box task state.
+1. Give a brief orientation: GPT-6.1 Sol at Low is the recommended root default, with Medium for harder coordination; GPT-6 Luna at High is the default for bounded work. Static configuration does not prove that the current client or account exposes these models. Explain that Superpowers covers development artifacts such as specifications, plans, debugging, TDD, and recovery, while `$iron-box-orchestration` guides worker routing and evidence checks. Do not create a parallel Iron Box task state.
 2. Read and semantically merge the user's existing global `AGENTS.md` when they want Iron Box guidance. Preserve sound intent, deduplicate overlap, explain conflicts, and write a normal document without Iron Box markers.
 3. Recommend Codex preferences: apply the workflow core as one bounded group; derive environment-specific suggestions from the actual client and machine.
 4. Present integrations that fit the user's work. Explain what each does, how it is used, when it helps, and what it adds beyond Codex.
