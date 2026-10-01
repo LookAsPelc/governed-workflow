@@ -203,13 +203,9 @@ worker report → diff, běh, test, dokumentace nebo jiný artefakt
 Deterministická kontrola může ověřit, že soubor existuje, JSON je validní nebo
 test skončil s exit code 0. Neověří sama, zda test pokrývá skutečný záměr,
 zda změna nevytvořila architektonický problém nebo zda se scope neposunul.
-Tam, kde je třeba úsudek, může root využít čerstvý read-only verifier. Ten má
-vracet `PASS`, `REVISE` nebo `BLOCKED` spolu s nálezem, důkazem a nejistotou.
-
-Ani `PASS` ale nemá být jediným dlouhodobým faktem. Přesnější je uložit nebo
-uvést, že konkrétní testy prošly na konkrétním diffu či commitu a co tím bylo
-ověřeno. Verifier pomáhá s úsudkem; root odpovídá za to, jak výsledek zapadne
-do cíle.
+Tam, kde je třeba úsudek, může root využít čerstvého read-only verifieru.
+Samotný verdikt nestačí: důležitý je konkrétní artefakt a důkaz toho, co bylo
+ověřeno. Root odpovídá za to, jak výsledek zapadne do cíle.
 
 ## Náklady koordinace a routing modelů
 

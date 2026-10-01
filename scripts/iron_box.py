@@ -3,14 +3,16 @@
 
 Validation remains read-only. ``activate-package`` is deliberately narrower
 than an installer: after validation it creates missing packaged payloads,
-preserves matching user files, and rejects conflicts. An interrupted activation
-can be completed by running it again. It never controls a client or edits a
-user's broader configuration.
+upgrades exact published profiles, removes an exact retired profile, preserves
+matching user files, and rejects conflicts. An interrupted activation can be
+completed by running it again. It never controls a client or edits a user's
+broader configuration.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import tempfile
@@ -35,6 +37,37 @@ BOOTSTRAP_FILES = (
     ("assets/pets/jax/pet.json", "pets/jax/pet.json"),
     ("assets/pets/jax/spritesheet.webp", "pets/jax/spritesheet.webp"),
 )
+
+# Only byte-exact agent profiles from published package releases are safe to
+# replace. Fingerprints come from c526ce5 (0.3.1), 247cab2 (0.4.0), and
+# 8e5535b (0.4.1).
+UPGRADABLE_PROFILE_SHA256 = {
+    "agents/luna-worker.toml": {
+        "41609ae68d027dcfc6d269ee367d519cf616637f04ddded84788e4b29be25279",
+        "cacc5f09c418dc636d7a6b3f1791c1995c3f1085aff02de1934c3ee9217c424c",
+    },
+    "agents/luna-researcher.toml": {
+        "2088adfcd95b898b22c5618d2bae9c0d59dc475c85c7e0ce31ea2265ac8b2971",
+        "c80a8e6b95117ec00c6c2d8abc269802c853f86d0cc5b5e1a61baacf053f32c6",
+    },
+    "agents/luna-debugger.toml": {
+        "520c0da6d6bca2ec3e21b1d492c1bfdef6c00b645aaefca6f0c16d4c08d6b2da",
+        "33b9d320e46ad2258a5a95ef364b2f96ba368643b64e82379bb26d81717395ba",
+    },
+    "agents/luna-verifier.toml": {
+        "f43359aa2760044cc70bd4f075e30a08d461bb4aa9c71bf943688edf0584598c",
+        "aebedc406aa1ed6c22157de9511596c956fb3d4f9d3fb7b2ae6e683afa55029b",
+    },
+    "agents/sol-peer.toml": {
+        "dc1f7b64aead91ea540a04257856073b216b5507c2e6e484c6ab295cde96d675",
+        "a0af82754546351d99ee6446ef84cc03969ea724bc86af4f1bae5a1e794ab309",
+        "83aabb4fdad77b8d7d1a0921efc0be5874c61501b3d876adab88a4370c542f6f",
+    },
+}
+RETIRED_PROFILE_SHA256 = {
+    "agents/sol-advisor.toml": "ff7b254438a61264f5542e1004fe1bbceefe4d029108a279f66d9e3411671ec4",
+}
+
 
 def _normalise_declared_path(value: Any) -> str:
     """Validate a package-relative POSIX path without touching the filesystem."""
@@ -316,9 +349,9 @@ def _assert_target_matches_snapshot(
 def activate_package(package_root: Path, codex_home: Path, *, dry_run: bool = False) -> int:
     """Activate packaged roles and Jax assets as an idempotent operation.
 
-    Existing matching files are left untouched; any differing file at a
-    managed path is a conflict. All targets are checked before mutation and
-    again before their individual atomic change. If a write fails, completed
+    Existing matching files are left untouched; only exact published profiles
+    can be upgraded or retired. All targets are checked before mutation and
+    again before each change. If a write fails, completed
     changes remain safe to retry on the next run. Concurrent activations of
     the same home are not serialized.
     """
@@ -329,7 +362,7 @@ def activate_package(package_root: Path, codex_home: Path, *, dry_run: bool = Fa
             raise SystemExit(f"bootstrap payload is not runtimeRequired: {source_relative}")
     regular_directory(codex_home)
 
-    changes: list[tuple[Path, bytes]] = []
+    changes: list[tuple[Path, bytes, bytes | None]] = []
     for source_relative, target_relative in BOOTSTRAP_FILES:
         source = package_root.joinpath(*source_relative.split("/"))
         target = codex_home.joinpath(*target_relative.split("/"))
@@ -341,26 +374,52 @@ def activate_package(package_root: Path, codex_home: Path, *, dry_run: bool = Fa
         regular_target(target)
         source_bytes = source.read_bytes()
         if not target.exists():
-            changes.append((target, source_bytes))
+            changes.append((target, source_bytes, None))
             continue
         current_bytes = target.read_bytes()
         if current_bytes == source_bytes:
             continue
+        accepted_hashes = UPGRADABLE_PROFILE_SHA256.get(target_relative, set())
+        if hashlib.sha256(current_bytes).hexdigest() in accepted_hashes:
+            changes.append((target, source_bytes, current_bytes))
+            continue
         raise SystemExit(f"bootstrap conflict: {target}")
 
+    retired_profiles: list[tuple[Path, bytes]] = []
+    for target_relative, accepted_hash in RETIRED_PROFILE_SHA256.items():
+        target = codex_home.joinpath(*target_relative.split("/"))
+        current = codex_home
+        for component in target.relative_to(codex_home).parts[:-1]:
+            current = current / component
+            regular_directory(current)
+        regular_target(target)
+        if not target.exists():
+            continue
+        current_bytes = target.read_bytes()
+        if hashlib.sha256(current_bytes).hexdigest() != accepted_hash:
+            raise SystemExit(f"bootstrap conflict: {target}")
+        retired_profiles.append((target, current_bytes))
+
     if dry_run:
-        for target, _ in changes:
-            print(f"bootstrap: would create {target}")
-        if not changes:
+        for target, _, previous in changes:
+            operation = "replace" if previous is not None else "create"
+            print(f"bootstrap: would {operation} {target}")
+        for target, _ in retired_profiles:
+            print(f"bootstrap: would remove {target}")
+        if not changes and not retired_profiles:
             print("bootstrap: already active")
         return 0
 
-    for target, contents in changes:
-        _assert_target_matches_snapshot(codex_home, target, None)
+    for target, contents, previous in changes:
+        _assert_target_matches_snapshot(codex_home, target, previous)
         _atomic_write(target, contents)
+    for target, previous in retired_profiles:
+        _assert_target_matches_snapshot(codex_home, target, previous)
+        target.unlink()
 
-    if changes:
-        print(f"bootstrap: applied {len(changes)} package changes")
+    package_changes = len(changes) + len(retired_profiles)
+    if package_changes:
+        print(f"bootstrap: applied {package_changes} package changes")
     else:
         print("bootstrap: already active")
     return 0

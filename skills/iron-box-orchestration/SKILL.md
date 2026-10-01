@@ -11,7 +11,7 @@ Inter-agent assignments, reports, code, and comments are in English. Write artif
 
 ## Route the work
 
-Choose Luna or Sol and set reasoning effort for the task. The role profile supplies the model; override it only when routing calls for a different model.
+Choose a role whose pinned model matches the routing need, and set reasoning effort for the task. Role profiles do not pin effort, so set it explicitly when starting a worker.
 
 - Use the latest Luna profile at High for normal bounded work, XHigh for reconciling conflicting constraints or debugging with competing hypotheses, and Max for difficult but bounded exploration.
 - Use the latest Sol profile for a narrow, evidence-backed consultation at Low, to compare alternatives and consequences at Medium, or for difficult architecture and consequential uncertain judgment at High.
