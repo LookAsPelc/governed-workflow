@@ -17,7 +17,7 @@ Manager / orchestration proxy
 └── Sol (Low / Medium / High) — escalation, proportional architecture, security, or judgment peer
 ```
 
-Luna costs about 1/20 as much as Sol per uncached input or output token. Prefer Luna when it can complete the work reliably; use Sol when its stronger reasoning is likely to prevent failures or rework worth the added cost. Optimize the cost of a successful task, including context, effort, retries, and handoffs.
+Luna is 20× cheaper per token than Sol.
 
 Choose a role whose pinned model matches the routing need, and set reasoning effort for the task. Role profiles do not pin effort, so set it explicitly when starting a worker.
 
