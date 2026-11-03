@@ -16,6 +16,11 @@ FORBIDDEN_SHELL_LINE = re.compile(
 )
 FORBIDDEN_INSTALLER = re.compile(r"(?:apply-iron-box\.sh|iron_box\.py|--install-codex-roles)")
 RESOLVED_RUNTIME_INSTALLER_MARKER = "resolved runtime installer sequence"
+# Desktop onboarding permits only the packaged, bounded profile activation.
+ALLOWED_ACTIVATION_COMMAND = (
+    'python3 "$package_root/scripts/iron_box.py" activate-package '
+    '"$codex_home" "$package_root"'
+)
 
 
 def check(path: pathlib.Path) -> None:
@@ -39,7 +44,10 @@ def check(path: pathlib.Path) -> None:
             snippets = [s for s in snippets if s not in set(FORBIDDEN_NAMES)]
         for snippet in snippets:
             command = snippet.strip().lstrip("$ ")
-            if FORBIDDEN_COMMAND.match(command) or FORBIDDEN_INSTALLER.search(command):
+            if (
+                command != ALLOWED_ACTIVATION_COMMAND
+                and (FORBIDDEN_COMMAND.match(command) or FORBIDDEN_INSTALLER.search(command))
+            ):
                 raise SystemExit(f"forbidden Desktop command invocation at {path}:{number}")
 
 

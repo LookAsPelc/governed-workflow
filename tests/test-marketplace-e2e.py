@@ -25,11 +25,7 @@ SKILLS = (
     "skills/iron-box-orchestration/SKILL.md",
 )
 ROLES = (
-    "assets/codex/agents/luna-worker.toml",
-    "assets/codex/agents/luna-researcher.toml",
-    "assets/codex/agents/luna-debugger.toml",
-    "assets/codex/agents/luna-verifier.toml",
-    "assets/codex/agents/sol-peer.toml",
+    "assets/codex/agents/sol-security.toml",
 )
 JAX_ASSETS = (
     "assets/pets/jax/pet.json",
@@ -126,7 +122,7 @@ def main() -> None:
             str(cached_root),
             env=bootstrap_env,
         )
-        assert "bootstrap: applied 7 package changes" in bootstrap_output
+        assert "bootstrap: applied 3 package changes" in bootstrap_output
         for source_relative, target_relative in BOOTSTRAP_TARGETS.items():
             source = cached_root / source_relative
             target = activation_home / target_relative

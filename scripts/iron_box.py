@@ -29,32 +29,30 @@ AGENT_PLUGINS_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.js
 # expose client agents; Codex makes these definitions available through one
 # bounded, idempotent activation operation.
 BOOTSTRAP_FILES = (
-    ("assets/codex/agents/luna-worker.toml", "agents/luna-worker.toml"),
-    ("assets/codex/agents/luna-researcher.toml", "agents/luna-researcher.toml"),
-    ("assets/codex/agents/luna-debugger.toml", "agents/luna-debugger.toml"),
-    ("assets/codex/agents/luna-verifier.toml", "agents/luna-verifier.toml"),
-    ("assets/codex/agents/sol-peer.toml", "agents/sol-peer.toml"),
+    ("assets/codex/agents/sol-security.toml", "agents/sol-security.toml"),
     ("assets/pets/jax/pet.json", "pets/jax/pet.json"),
     ("assets/pets/jax/spritesheet.webp", "pets/jax/spritesheet.webp"),
 )
 
-# Only byte-exact agent profiles from published package releases are safe to
-# replace. Fingerprints come from c526ce5 (0.3.1), 247cab2 (0.4.0), and
-# 8e5535b (0.4.1).
-UPGRADABLE_PROFILE_SHA256 = {
+# Retire only unmodified profiles from published releases (0.3.1 through 0.4.2).
+RETIRED_PROFILE_SHA256 = {
     "agents/luna-worker.toml": {
+        "471c605b79b04f4479210034021409f765a304cb271469a0603f773ccc6d07a2",
         "41609ae68d027dcfc6d269ee367d519cf616637f04ddded84788e4b29be25279",
         "cacc5f09c418dc636d7a6b3f1791c1995c3f1085aff02de1934c3ee9217c424c",
     },
     "agents/luna-researcher.toml": {
+        "ddbfd38c786956ddf6b55c1c17b2172425515de4834cfbeffc9b5ac5af3b7777",
         "2088adfcd95b898b22c5618d2bae9c0d59dc475c85c7e0ce31ea2265ac8b2971",
         "c80a8e6b95117ec00c6c2d8abc269802c853f86d0cc5b5e1a61baacf053f32c6",
     },
     "agents/luna-debugger.toml": {
+        "2f6fa0d90ec29711201e2e0ed5d66155494ce9bd4f28d5a434a25f397a87bd3a",
         "520c0da6d6bca2ec3e21b1d492c1bfdef6c00b645aaefca6f0c16d4c08d6b2da",
         "33b9d320e46ad2258a5a95ef364b2f96ba368643b64e82379bb26d81717395ba",
     },
     "agents/luna-verifier.toml": {
+        "451704c082000307d3686fc4c46e07703ca49ab4e704a56bcf594f7ff773c6d2",
         "f43359aa2760044cc70bd4f075e30a08d461bb4aa9c71bf943688edf0584598c",
         "aebedc406aa1ed6c22157de9511596c956fb3d4f9d3fb7b2ae6e683afa55029b",
     },
@@ -63,9 +61,7 @@ UPGRADABLE_PROFILE_SHA256 = {
         "a0af82754546351d99ee6446ef84cc03969ea724bc86af4f1bae5a1e794ab309",
         "83aabb4fdad77b8d7d1a0921efc0be5874c61501b3d876adab88a4370c542f6f",
     },
-}
-RETIRED_PROFILE_SHA256 = {
-    "agents/sol-advisor.toml": "ff7b254438a61264f5542e1004fe1bbceefe4d029108a279f66d9e3411671ec4",
+    "agents/sol-advisor.toml": {"ff7b254438a61264f5542e1004fe1bbceefe4d029108a279f66d9e3411671ec4"},
 }
 
 
@@ -350,7 +346,7 @@ def activate_package(package_root: Path, codex_home: Path, *, dry_run: bool = Fa
     """Activate packaged roles and Jax assets as an idempotent operation.
 
     Existing matching files are left untouched; only exact published profiles
-    can be upgraded or retired. All targets are checked before mutation and
+    are retired. All targets are checked before mutation and
     again before each change. If a write fails, completed
     changes remain safe to retry on the next run. Concurrent activations of
     the same home are not serialized.
@@ -379,14 +375,10 @@ def activate_package(package_root: Path, codex_home: Path, *, dry_run: bool = Fa
         current_bytes = target.read_bytes()
         if current_bytes == source_bytes:
             continue
-        accepted_hashes = UPGRADABLE_PROFILE_SHA256.get(target_relative, set())
-        if hashlib.sha256(current_bytes).hexdigest() in accepted_hashes:
-            changes.append((target, source_bytes, current_bytes))
-            continue
         raise SystemExit(f"bootstrap conflict: {target}")
 
     retired_profiles: list[tuple[Path, bytes]] = []
-    for target_relative, accepted_hash in RETIRED_PROFILE_SHA256.items():
+    for target_relative, accepted_hashes in RETIRED_PROFILE_SHA256.items():
         target = codex_home.joinpath(*target_relative.split("/"))
         current = codex_home
         for component in target.relative_to(codex_home).parts[:-1]:
@@ -396,7 +388,7 @@ def activate_package(package_root: Path, codex_home: Path, *, dry_run: bool = Fa
         if not target.exists():
             continue
         current_bytes = target.read_bytes()
-        if hashlib.sha256(current_bytes).hexdigest() != accepted_hash:
+        if hashlib.sha256(current_bytes).hexdigest() not in accepted_hashes:
             raise SystemExit(f"bootstrap conflict: {target}")
         retired_profiles.append((target, current_bytes))
 

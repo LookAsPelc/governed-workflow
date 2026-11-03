@@ -6,7 +6,7 @@ Iron Box is an Agent Plugin with a portable skills core and optional Codex integ
 
 ## Model routing
 
-GPT-6.1 Sol at Low is the recommended root default; Medium can help with harder coordination. GPT-6 Luna at High is the default for bounded work; use XHigh for reconciling conflicting constraints or debugging with competing hypotheses, and Max for difficult bounded exploration. The custom profiles pin model identity and leave subagent effort to the manager when each task starts. See the [orchestration contract](skills/iron-box-orchestration/SKILL.md) for worker routing and context decisions.
+GPT-6.1 Terra at Medium is the recommended root. Luna at XHigh is the starting point for coding; Terra handles applications and writing, and Sol provides expert judgment. The manager chooses the model and effort for each task. See the [orchestration contract](skills/iron-box-orchestration/SKILL.md) for routing and context decisions.
 
 The shared [`templates/codex-desktop.recommended.toml`](templates/codex-desktop.recommended.toml) provides desktop workflow defaults. The [Codex config reference](https://learn.chatgpt.com/docs/config-file/config-reference) documents `model_reasoning_effort`. Static configuration does not establish model availability in a client or account; onboarding checks supported capabilities and reports unavailable versus unverified.
 
@@ -35,7 +35,7 @@ Onboarding explains relevant integrations and asks before installing or activati
 
 - `$iron-box-orchestration` is the shared root routing and verification skill.
 - `$iron-box-onboarding` guides setup and live capability checks.
-- The packaged Luna/Sol TOML files are optional Codex execution profiles.
+- The packaged TOML files are optional Codex execution profiles.
 - Jax is an optional onboarding companion.
 
 ## Design influences

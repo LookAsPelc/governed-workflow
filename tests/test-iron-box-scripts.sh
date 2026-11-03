@@ -66,11 +66,7 @@ root = pathlib.Path(sys.argv[1])
 package = json.loads((root / "iron-box-package.json").read_text(encoding="utf-8"))
 
 roles = {
-    "luna-worker.toml": ("luna_worker", "gpt-6-luna", "workspace-write"),
-    "luna-researcher.toml": ("luna_researcher", "gpt-6-luna", "read-only"),
-    "luna-debugger.toml": ("luna_debugger", "gpt-6-luna", "workspace-write"),
-    "luna-verifier.toml": ("luna_verifier", "gpt-6-luna", "read-only"),
-    "sol-peer.toml": ("sol_peer", "gpt-6.1-sol", "read-only"),
+    "sol-security.toml": ("sol_security", "gpt-5.6-sol", "read-only"),
 }
 for filename, (expected_name, expected_model, expected_sandbox) in roles.items():
     path = root / "assets" / "codex" / "agents" / filename
@@ -88,8 +84,8 @@ assert {
 with (root / "templates" / "codex-desktop.recommended.toml").open("rb") as handle:
     desktop = tomllib.load(handle)
 agents = desktop["agents"]
-assert desktop["model"] == "gpt-6.1-sol"
-assert desktop["model_reasoning_effort"] == "low"
+assert desktop["model"] == "gpt-6.1-terra"
+assert desktop["model_reasoning_effort"] == "medium"
 assert agents["default_subagent_model"] == "gpt-6-luna"
 assert "default_subagent_reasoning_effort" not in agents
 PY
@@ -141,13 +137,34 @@ mkdir -p "$tmp/codex-home/agents"
 printf 'keep this user profile\n' >"$tmp/codex-home/agents/personal-profile.toml"
 python3 "$root/scripts/iron_box.py" activate-package "$tmp/codex-home" >"$tmp/bootstrap.out"
 python3 "$root/scripts/iron_box.py" activate-package "$tmp/codex-home" >>"$tmp/bootstrap.out"
-grep -Fq 'bootstrap: applied 7 package changes' "$tmp/bootstrap.out" || fail 'bootstrap did not create all package payloads'
+grep -Fq 'bootstrap: applied 3 package changes' "$tmp/bootstrap.out" || fail 'bootstrap did not create all package payloads'
 grep -Fq 'bootstrap: already active' "$tmp/bootstrap.out" || fail 'bootstrap was not idempotent'
 [[ "$(cat "$tmp/codex-home/agents/personal-profile.toml")" == 'keep this user profile' ]] || fail 'bootstrap changed an unrelated user profile'
-printf 'different role\n' >"$tmp/codex-home/agents/luna-worker.toml"
+printf 'different role\n' >"$tmp/codex-home/agents/sol-security.toml"
 if python3 "$root/scripts/iron_box.py" activate-package "$tmp/codex-home" >"$tmp/bootstrap-conflict.out" 2>&1; then
   fail 'bootstrap accepted a conflicting role file'
 fi
+
+# Upgrading a 0.4.2 home retires its exact published Luna profile and preserves
+# unrelated user profiles.
+upgrade_home="$tmp/upgrade-home"
+mkdir -p "$upgrade_home/agents"
+cat >"$upgrade_home/agents/luna-worker.toml" <<'PROFILE'
+name = "luna_worker"
+description = "Luna worker for bounded work with task-specific instructions."
+nickname_candidates = ["Luna", "Auri", "Bast", "Ludis", "Moon", "Foxen", "Shaed"]
+model = "gpt-6-luna"
+sandbox_mode = "workspace-write"
+
+developer_instructions = """
+Complete the bounded task in the supplied context. Preserve unrelated and concurrent work; avoid opportunistic redesign, refactoring, or scope expansion. Return a concise account of the result, affected artifacts, useful checks or evidence, and unresolved issues.
+"""
+PROFILE
+printf 'keep this user profile\n' >"$upgrade_home/agents/personal-profile.toml"
+python3 "$root/scripts/iron_box.py" activate-package "$upgrade_home" >"$tmp/upgrade.out"
+grep -Fq 'bootstrap: applied 4 package changes' "$tmp/upgrade.out" || fail 'upgrade did not retire the published profile'
+[[ ! -e "$upgrade_home/agents/luna-worker.toml" ]] || fail 'upgrade left the retired 0.4.2 profile in place'
+[[ "$(cat "$upgrade_home/agents/personal-profile.toml")" == 'keep this user profile' ]] || fail 'upgrade changed an unrelated user profile'
 
 # Generic safety checks cover a clean install, dry-run, retry after an
 # interrupted write, and a user file appearing after preflight.
@@ -202,14 +219,13 @@ else:
 finally:
     iron_box._atomic_write = original_write
 assert write_count == 3
-assert (retry_home / "agents/luna-worker.toml").read_bytes() == payloads["agents/luna-worker.toml"]
-assert (retry_home / "agents/luna-researcher.toml").read_bytes() == payloads["agents/luna-researcher.toml"]
-assert not (retry_home / "agents/luna-debugger.toml").exists()
-assert not (retry_home / "pets").exists()
+assert (retry_home / "agents/sol-security.toml").read_bytes() == payloads["agents/sol-security.toml"]
+assert (retry_home / "pets/jax/pet.json").read_bytes() == payloads["pets/jax/pet.json"]
+assert not (retry_home / "pets/jax/spritesheet.webp").exists()
 
 result = activate(retry_home)
 assert result.returncode == 0, result.stderr
-assert "bootstrap: applied 5 package changes" in result.stdout
+assert "bootstrap: applied 1 package changes" in result.stdout
 for target, contents in payloads.items():
     assert (retry_home / target).read_bytes() == contents
 assert activate(retry_home).stdout.strip() == "bootstrap: already active"
@@ -227,7 +243,7 @@ assert not dry_run_home.exists()
 
 # A target that appears after preflight remains intact and blocks activation.
 concurrent_home = temporary / "concurrent-missing"
-worker = concurrent_home / "agents/luna-worker.toml"
+worker = concurrent_home / "agents/sol-security.toml"
 concurrent_worker_bytes = b"external file appeared after preflight\n"
 original_check = iron_box._assert_target_matches_snapshot
 injected = False

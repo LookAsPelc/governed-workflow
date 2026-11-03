@@ -2,10 +2,9 @@
 # Apply only the values supported by the current client.
 # Environment-specific UI preferences stay unset; derive them from the user.
 
-model = "gpt-6.1-sol"
-model_reasoning_effort = "low"
-# Use medium reasoning for harder coordination.
-approvals_reviewer = "auto_review"
+model = "gpt-6.1-terra"
+model_reasoning_effort = "medium"
+approvals_reviewer = "auto_review" # Explain user each mode and its implications
 
 [features]
 memories = true

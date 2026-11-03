@@ -73,11 +73,7 @@ if (width, height) != (1536, 2288):
 print("valid Jax pet asset")
 
 roles = {
-    "luna-worker.toml": ("luna_worker", "gpt-6-luna", "workspace-write"),
-    "luna-researcher.toml": ("luna_researcher", "gpt-6-luna", "read-only"),
-    "luna-debugger.toml": ("luna_debugger", "gpt-6-luna", "workspace-write"),
-    "luna-verifier.toml": ("luna_verifier", "gpt-6-luna", "read-only"),
-    "sol-peer.toml": ("sol_peer", "gpt-6.1-sol", "read-only"),
+    "sol-security.toml": ("sol_security", "gpt-5.6-sol", "read-only"),
 }
 roles_dir = root / "assets" / "codex" / "agents"
 runtime_profiles = {
@@ -105,13 +101,13 @@ with (root / "templates" / "codex-desktop.recommended.toml").open("rb") as handl
     desktop = tomllib.load(handle)
 agents = desktop.get("agents", {})
 if (
-    desktop.get("model") != "gpt-6.1-sol"
-    or desktop.get("model_reasoning_effort") != "low"
+    desktop.get("model") != "gpt-6.1-terra"
+    or desktop.get("model_reasoning_effort") != "medium"
     or agents.get("default_subagent_model") != "gpt-6-luna"
     or "default_subagent_reasoning_effort" in agents
 ):
-    raise SystemExit("invalid recommended Sol root or Luna subagent configuration")
-print("valid recommended Sol root and Luna subagent configuration")
+    raise SystemExit("invalid recommended Terra root or Luna subagent configuration")
+print("valid recommended Terra root and Luna subagent configuration")
 PY
 
 # Syntax checks are local and do not execute any host client.
