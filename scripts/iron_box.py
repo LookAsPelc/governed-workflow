@@ -1,18 +1,14 @@
 #!/usr/bin/env python3
 """Package validation and the bounded Iron Box runtime bootstrap.
 
-Validation remains read-only. ``activate-package`` is deliberately narrower
-than an installer: after validation it creates missing packaged payloads,
-upgrades exact published profiles, removes an exact retired profile, preserves
-matching user files, and rejects conflicts. An interrupted activation can be
-completed by running it again. It never controls a client or edits a user's
-broader configuration.
+Validation remains read-only. Activation installs the packaged Jax avatar.
+Matching files are preserved, conflicts are rejected, and an interrupted
+activation can be retried.
 """
 
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import tempfile
@@ -24,46 +20,10 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 AGENT_PLUGINS_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
 
-# These files are Codex-specific provisioning payloads kept beside the
-# portable Agent Plugins core.  The portable manifest intentionally does not
-# expose client agents; Codex makes these definitions available through one
-# bounded, idempotent activation operation.
 BOOTSTRAP_FILES = (
-    ("assets/codex/agents/sol-security.toml", "agents/sol-security.toml"),
     ("assets/pets/jax/pet.json", "pets/jax/pet.json"),
     ("assets/pets/jax/spritesheet.webp", "pets/jax/spritesheet.webp"),
 )
-
-# Retire only unmodified profiles from published releases (0.3.1 through 0.4.2).
-RETIRED_PROFILE_SHA256 = {
-    "agents/luna-worker.toml": {
-        "471c605b79b04f4479210034021409f765a304cb271469a0603f773ccc6d07a2",
-        "41609ae68d027dcfc6d269ee367d519cf616637f04ddded84788e4b29be25279",
-        "cacc5f09c418dc636d7a6b3f1791c1995c3f1085aff02de1934c3ee9217c424c",
-    },
-    "agents/luna-researcher.toml": {
-        "ddbfd38c786956ddf6b55c1c17b2172425515de4834cfbeffc9b5ac5af3b7777",
-        "2088adfcd95b898b22c5618d2bae9c0d59dc475c85c7e0ce31ea2265ac8b2971",
-        "c80a8e6b95117ec00c6c2d8abc269802c853f86d0cc5b5e1a61baacf053f32c6",
-    },
-    "agents/luna-debugger.toml": {
-        "2f6fa0d90ec29711201e2e0ed5d66155494ce9bd4f28d5a434a25f397a87bd3a",
-        "520c0da6d6bca2ec3e21b1d492c1bfdef6c00b645aaefca6f0c16d4c08d6b2da",
-        "33b9d320e46ad2258a5a95ef364b2f96ba368643b64e82379bb26d81717395ba",
-    },
-    "agents/luna-verifier.toml": {
-        "451704c082000307d3686fc4c46e07703ca49ab4e704a56bcf594f7ff773c6d2",
-        "f43359aa2760044cc70bd4f075e30a08d461bb4aa9c71bf943688edf0584598c",
-        "aebedc406aa1ed6c22157de9511596c956fb3d4f9d3fb7b2ae6e683afa55029b",
-    },
-    "agents/sol-peer.toml": {
-        "dc1f7b64aead91ea540a04257856073b216b5507c2e6e484c6ab295cde96d675",
-        "a0af82754546351d99ee6446ef84cc03969ea724bc86af4f1bae5a1e794ab309",
-        "83aabb4fdad77b8d7d1a0921efc0be5874c61501b3d876adab88a4370c542f6f",
-    },
-    "agents/sol-advisor.toml": {"ff7b254438a61264f5542e1004fe1bbceefe4d029108a279f66d9e3411671ec4"},
-}
-
 
 def _normalise_declared_path(value: Any) -> str:
     """Validate a package-relative POSIX path without touching the filesystem."""
@@ -343,13 +303,10 @@ def _assert_target_matches_snapshot(
 
 
 def activate_package(package_root: Path, codex_home: Path, *, dry_run: bool = False) -> int:
-    """Activate packaged roles and Jax assets as an idempotent operation.
+    """Install Jax assets, checking all targets before writing either file.
 
-    Existing matching files are left untouched; only exact published profiles
-    are retired. All targets are checked before mutation and
-    again before each change. If a write fails, completed
-    changes remain safe to retry on the next run. Concurrent activations of
-    the same home are not serialized.
+    Completed writes can be reused on retry. Concurrent activations of the
+    same home are not serialized.
     """
     manifest = validate_package(package_root)
     declared = set(manifest["runtimeRequired"])
@@ -377,41 +334,19 @@ def activate_package(package_root: Path, codex_home: Path, *, dry_run: bool = Fa
             continue
         raise SystemExit(f"bootstrap conflict: {target}")
 
-    retired_profiles: list[tuple[Path, bytes]] = []
-    for target_relative, accepted_hashes in RETIRED_PROFILE_SHA256.items():
-        target = codex_home.joinpath(*target_relative.split("/"))
-        current = codex_home
-        for component in target.relative_to(codex_home).parts[:-1]:
-            current = current / component
-            regular_directory(current)
-        regular_target(target)
-        if not target.exists():
-            continue
-        current_bytes = target.read_bytes()
-        if hashlib.sha256(current_bytes).hexdigest() not in accepted_hashes:
-            raise SystemExit(f"bootstrap conflict: {target}")
-        retired_profiles.append((target, current_bytes))
-
     if dry_run:
-        for target, _, previous in changes:
-            operation = "replace" if previous is not None else "create"
-            print(f"bootstrap: would {operation} {target}")
-        for target, _ in retired_profiles:
-            print(f"bootstrap: would remove {target}")
-        if not changes and not retired_profiles:
+        for target, _, _ in changes:
+            print(f"bootstrap: would create {target}")
+        if not changes:
             print("bootstrap: already active")
         return 0
 
     for target, contents, previous in changes:
         _assert_target_matches_snapshot(codex_home, target, previous)
         _atomic_write(target, contents)
-    for target, previous in retired_profiles:
-        _assert_target_matches_snapshot(codex_home, target, previous)
-        target.unlink()
 
-    package_changes = len(changes) + len(retired_profiles)
-    if package_changes:
-        print(f"bootstrap: applied {package_changes} package changes")
+    if changes:
+        print(f"bootstrap: applied {len(changes)} package changes")
     else:
         print("bootstrap: already active")
     return 0
@@ -427,7 +362,7 @@ def main() -> int:
     package_parser.add_argument("--development", action="store_true")
     activate_parser = subparsers.add_parser(
         "activate-package",
-        help="activate packaged roles and Jax assets in one CODEX_HOME",
+        help="activate packaged Jax assets in one CODEX_HOME",
     )
     activate_parser.add_argument("codex_home", type=Path)
     activate_parser.add_argument("package_root", nargs="?", type=Path)

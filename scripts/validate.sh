@@ -35,11 +35,6 @@ for path in (*root.glob("agents/*.md"), *root.glob("skills/*/SKILL.md")):
         raise SystemExit(f"frontmatter needs name/description: {path.relative_to(root)}")
 print("valid skill and agent frontmatter")
 
-template = (root / "templates" / "AGENTS.global.recommended.md").read_text(encoding="utf-8")
-if "iron-box:start" in template or "iron-box:end" in template:
-    raise SystemExit("AGENTS template must be markerless")
-print("valid markerless AGENTS template")
-
 onboarding = root / "skills" / "iron-box-onboarding" / "SKILL.md"
 if onboarding.stat().st_size > 6_000:
     raise SystemExit(f"onboarding skill exceeds 6000 bytes: {onboarding.stat().st_size}")
@@ -71,31 +66,6 @@ height = ((dimensions >> 14) & 0x3FFF) + 1
 if (width, height) != (1536, 2288):
     raise SystemExit(f"Jax spritesheet must be 1536x2288, got {width}x{height}")
 print("valid Jax pet asset")
-
-roles = {
-    "sol-security.toml": ("sol_security", "gpt-5.6-sol", "read-only"),
-}
-roles_dir = root / "assets" / "codex" / "agents"
-runtime_profiles = {
-    path
-    for path in json.loads((root / "iron-box-package.json").read_text(encoding="utf-8"))["runtimeRequired"]
-    if path.startswith("assets/codex/agents/")
-}
-if runtime_profiles != {f"assets/codex/agents/{filename}" for filename in roles}:
-    raise SystemExit("runtime package must declare exactly the supported Codex profiles")
-for filename, (name, model, sandbox) in roles.items():
-    path = roles_dir / filename
-    with path.open("rb") as handle:
-        role = tomllib.load(handle)
-    if (
-        role.get("name") != name
-        or role.get("model") != model
-        or "model_reasoning_effort" in role
-        or role.get("sandbox_mode") != sandbox
-        or not isinstance(role.get("developer_instructions"), str)
-    ):
-        raise SystemExit(f"{path.relative_to(root)} has an invalid role identity")
-print(f"valid Codex role assets: {len(roles)}")
 
 with (root / "templates" / "codex-desktop.recommended.toml").open("rb") as handle:
     desktop = tomllib.load(handle)

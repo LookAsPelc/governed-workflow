@@ -54,41 +54,21 @@ assert github["metadata"]["version"] == package["version"]
 assert github["plugins"][0]["version"] == package["version"]
 PY
 
-# Codex profile assets are optional conveniences; dynamic task framing remains
-# the manager's responsibility.
-python3 - "$root" <<'PY'
-import json
+# The Codex desktop settings template remains an onboarding reference.
+python3 - "$root" <<'PYTEST'
 import pathlib
 import sys
 import tomllib
 
 root = pathlib.Path(sys.argv[1])
-package = json.loads((root / "iron-box-package.json").read_text(encoding="utf-8"))
-
-roles = {
-    "sol-security.toml": ("sol_security", "gpt-5.6-sol", "read-only"),
-}
-for filename, (expected_name, expected_model, expected_sandbox) in roles.items():
-    path = root / "assets" / "codex" / "agents" / filename
-    with path.open("rb") as handle:
-        role = tomllib.load(handle)
-    assert role["name"] == expected_name
-    assert role["model"] == expected_model
-    assert "model_reasoning_effort" not in role
-    assert role["sandbox_mode"] == expected_sandbox
-
-assert {
-    path for path in package["runtimeRequired"] if path.startswith("assets/codex/agents/")
-} == {f"assets/codex/agents/{filename}" for filename in roles}
-
-with (root / "templates" / "codex-desktop.recommended.toml").open("rb") as handle:
+with (root / "templates/codex-desktop.recommended.toml").open("rb") as handle:
     desktop = tomllib.load(handle)
 agents = desktop["agents"]
 assert desktop["model"] == "gpt-6.1-terra"
 assert desktop["model_reasoning_effort"] == "medium"
 assert agents["default_subagent_model"] == "gpt-6-luna"
 assert "default_subagent_reasoning_effort" not in agents
-PY
+PYTEST
 
 # Marketplace catalogs may carry independent names, while the Iron Box version
 # remains coupled to the package metadata.
@@ -126,45 +106,31 @@ if python3 "$root/scripts/iron_box.py" apply >"$tmp/apply.out" 2>&1; then
 fi
 [[ ! -e "$root/scripts/apply-iron-box.sh" ]] || fail 'legacy apply wrapper remains'
 [[ ! -e "$root/scripts/iron-box-status.sh" ]] || fail 'legacy status wrapper remains'
-if grep -Fq '<!-- iron-box:' "$root/templates/AGENTS.global.recommended.md"; then
-  fail 'marker machinery remains in AGENTS template'
-fi
 
-# Bootstrap is one idempotent operation: it creates missing role/Jax payloads,
-# leaves matching files untouched, and refuses a conflicting user file.
+# Bootstrap installs only the packaged Jax assets and preserves user-owned
+# profiles and global instructions.
 mkdir -p "$tmp/codex-home"
 mkdir -p "$tmp/codex-home/agents"
 printf 'keep this user profile\n' >"$tmp/codex-home/agents/personal-profile.toml"
+printf 'legacy agent profile\n' >"$tmp/codex-home/agents/sol-security.toml"
+printf 'user instructions\n' >"$tmp/codex-home/AGENTS.md"
 python3 "$root/scripts/iron_box.py" activate-package "$tmp/codex-home" >"$tmp/bootstrap.out"
 python3 "$root/scripts/iron_box.py" activate-package "$tmp/codex-home" >>"$tmp/bootstrap.out"
-grep -Fq 'bootstrap: applied 3 package changes' "$tmp/bootstrap.out" || fail 'bootstrap did not create all package payloads'
+grep -Fq 'bootstrap: applied 2 package changes' "$tmp/bootstrap.out" || fail 'bootstrap did not create all package payloads'
 grep -Fq 'bootstrap: already active' "$tmp/bootstrap.out" || fail 'bootstrap was not idempotent'
 [[ "$(cat "$tmp/codex-home/agents/personal-profile.toml")" == 'keep this user profile' ]] || fail 'bootstrap changed an unrelated user profile'
-printf 'different role\n' >"$tmp/codex-home/agents/sol-security.toml"
-if python3 "$root/scripts/iron_box.py" activate-package "$tmp/codex-home" >"$tmp/bootstrap-conflict.out" 2>&1; then
-  fail 'bootstrap accepted a conflicting role file'
-fi
+[[ "$(cat "$tmp/codex-home/agents/sol-security.toml")" == 'legacy agent profile' ]] || fail 'bootstrap changed an agent definition'
+[[ "$(cat "$tmp/codex-home/AGENTS.md")" == 'user instructions' ]] || fail 'bootstrap changed global AGENTS.md'
 
-# Upgrading a 0.4.2 home retires its exact published Luna profile and preserves
-# unrelated user profiles.
+# Existing client-specific files remain untouched during activation.
 upgrade_home="$tmp/upgrade-home"
 mkdir -p "$upgrade_home/agents"
-cat >"$upgrade_home/agents/luna-worker.toml" <<'PROFILE'
-name = "luna_worker"
-description = "Luna worker for bounded work with task-specific instructions."
-nickname_candidates = ["Luna", "Auri", "Bast", "Ludis", "Moon", "Foxen", "Shaed"]
-model = "gpt-6-luna"
-sandbox_mode = "workspace-write"
-
-developer_instructions = """
-Complete the bounded task in the supplied context. Preserve unrelated and concurrent work; avoid opportunistic redesign, refactoring, or scope expansion. Return a concise account of the result, affected artifacts, useful checks or evidence, and unresolved issues.
-"""
-PROFILE
-printf 'keep this user profile\n' >"$upgrade_home/agents/personal-profile.toml"
+printf 'custom agent profile\n' >"$upgrade_home/agents/luna-worker.toml"
+printf 'global instructions\n' >"$upgrade_home/AGENTS.md"
 python3 "$root/scripts/iron_box.py" activate-package "$upgrade_home" >"$tmp/upgrade.out"
-grep -Fq 'bootstrap: applied 4 package changes' "$tmp/upgrade.out" || fail 'upgrade did not retire the published profile'
-[[ ! -e "$upgrade_home/agents/luna-worker.toml" ]] || fail 'upgrade left the retired 0.4.2 profile in place'
-[[ "$(cat "$upgrade_home/agents/personal-profile.toml")" == 'keep this user profile' ]] || fail 'upgrade changed an unrelated user profile'
+grep -Fq 'bootstrap: applied 2 package changes' "$tmp/upgrade.out" || fail 'activation did not install Jax assets'
+[[ "$(cat "$upgrade_home/agents/luna-worker.toml")" == 'custom agent profile' ]] || fail 'activation changed a client-specific profile'
+[[ "$(cat "$upgrade_home/AGENTS.md")" == 'global instructions' ]] || fail 'activation changed global AGENTS.md'
 
 # Generic safety checks cover a clean install, dry-run, retry after an
 # interrupted write, and a user file appearing after preflight.
@@ -204,7 +170,7 @@ write_count = 0
 def fail_after_two_writes(target, contents):
     global write_count
     write_count += 1
-    if write_count > 2:
+    if write_count > 1:
         raise OSError("injected persistent write failure")
     return original_write(target, contents)
 
@@ -218,8 +184,7 @@ else:
     raise AssertionError("activation unexpectedly succeeded after injected failure")
 finally:
     iron_box._atomic_write = original_write
-assert write_count == 3
-assert (retry_home / "agents/sol-security.toml").read_bytes() == payloads["agents/sol-security.toml"]
+assert write_count == 2
 assert (retry_home / "pets/jax/pet.json").read_bytes() == payloads["pets/jax/pet.json"]
 assert not (retry_home / "pets/jax/spritesheet.webp").exists()
 
@@ -243,7 +208,7 @@ assert not dry_run_home.exists()
 
 # A target that appears after preflight remains intact and blocks activation.
 concurrent_home = temporary / "concurrent-missing"
-worker = concurrent_home / "agents/sol-security.toml"
+worker = concurrent_home / "pets/jax/pet.json"
 concurrent_worker_bytes = b"external file appeared after preflight\n"
 original_check = iron_box._assert_target_matches_snapshot
 injected = False
@@ -268,7 +233,6 @@ else:
 finally:
     iron_box._assert_target_matches_snapshot = original_check
 assert worker.read_bytes() == concurrent_worker_bytes
-assert not (concurrent_home / "pets").exists()
 PYTEST
 
 # Validate a runtime-only checkout after removing development fixtures. This

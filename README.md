@@ -35,11 +35,11 @@ Onboarding explains relevant integrations and asks before installing or activati
 
 - `$iron-box-orchestration` is the shared root routing and verification skill.
 - `$iron-box-onboarding` guides setup and live capability checks.
-- The packaged TOML files are optional Codex execution profiles.
+- The Desktop TOML template documents recommended client settings.
 - Jax is an optional onboarding companion.
 
 ## Design influences
 
-Iron Box is independently implemented. It does not contain LongHorizon-Harness code or recreate its runtime. Original role profiles are adapted from [Sol-Governed Codex](https://github.com/BusyBee3333/sol-governed-codex); legal attribution is in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Iron Box is independently implemented. It does not contain LongHorizon-Harness code or recreate its runtime. Earlier role profiles were adapted from [Sol-Governed Codex](https://github.com/BusyBee3333/sol-governed-codex); legal attribution is in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 The design is informed by [LongHorizon-Harness](https://arxiv.org/html/2608.01964v1), [METR long-task measurement](https://arxiv.org/html/2503.14499v4), [Context Rot research](https://www.trychroma.com/research/context-rot), [The Self-Correction Illusion](https://arxiv.org/html/2606.05976v2), and [Anthropic's effective harnesses](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents). These sources motivate bounded delegation and evidence-based verification; they are not reliability guarantees.

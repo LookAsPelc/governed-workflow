@@ -24,15 +24,11 @@ SKILLS = (
     "skills/iron-box-onboarding/SKILL.md",
     "skills/iron-box-orchestration/SKILL.md",
 )
-ROLES = (
-    "assets/codex/agents/sol-security.toml",
-)
 JAX_ASSETS = (
     "assets/pets/jax/pet.json",
     "assets/pets/jax/spritesheet.webp",
 )
 BOOTSTRAP_TARGETS = {
-    **{relative: relative.removeprefix("assets/codex/") for relative in ROLES},
     "assets/pets/jax/pet.json": "pets/jax/pet.json",
     "assets/pets/jax/spritesheet.webp": "pets/jax/spritesheet.webp",
 }
@@ -106,7 +102,7 @@ def main() -> None:
         assert source.get("source") == "local"
         assert Path(source["path"]).resolve() == fixture.resolve()
 
-        for relative in (*SKILLS, *ROLES, *JAX_ASSETS):
+        for relative in (*SKILLS, *JAX_ASSETS):
             target = cached_root / relative
             assert target.is_file(), f"missing cached runtime payload: {relative}"
         activation_home = temporary_root / "activated-codex-home"
@@ -122,7 +118,7 @@ def main() -> None:
             str(cached_root),
             env=bootstrap_env,
         )
-        assert "bootstrap: applied 3 package changes" in bootstrap_output
+        assert "bootstrap: applied 2 package changes" in bootstrap_output
         for source_relative, target_relative in BOOTSTRAP_TARGETS.items():
             source = cached_root / source_relative
             target = activation_home / target_relative
@@ -154,7 +150,7 @@ def main() -> None:
         validate_package(cached_root)
     print(
         "marketplace E2E passed: local add, plugin add, cached bootstrap, "
-        "skills, roles, and Jax assets"
+        "skills and Jax assets"
     )
 
 

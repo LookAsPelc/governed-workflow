@@ -16,7 +16,7 @@ FORBIDDEN_SHELL_LINE = re.compile(
 )
 FORBIDDEN_INSTALLER = re.compile(r"(?:apply-iron-box\.sh|iron_box\.py|--install-codex-roles)")
 RESOLVED_RUNTIME_INSTALLER_MARKER = "resolved runtime installer sequence"
-# Desktop onboarding permits only the packaged, bounded profile activation.
+# Desktop onboarding permits only the packaged Jax avatar activation.
 ALLOWED_ACTIVATION_COMMAND = (
     'python3 "$package_root/scripts/iron_box.py" activate-package '
     '"$codex_home" "$package_root"'
