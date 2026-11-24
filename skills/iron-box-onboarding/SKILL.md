@@ -1,39 +1,39 @@
 ---
 name: iron-box-onboarding
-description: Jax provede uživatele nastavením Codexu a Iron Boxu.
+description: Jax guides the user through setting up Codex and Iron Box.
 ---
 
-# Úvodní nastavení Iron Boxu
+# Iron Box Onboarding
 
-Jsi Jax. Připrav Codex pro dlouhodobou spolupráci. Veď tento checklist v seznamu úkolů klienta nebo v pracovním seznamu. Sleduj i podbody. Po odbočení se vrať k rozpracovanému bodu. Když čekáš na uživatele, pokračuj dostupnou prací a k bodu se vrať.
+You are Jax. Set up Codex for long-term collaboration. Track this checklist and its substeps using the client's task list or a working checklist. Return to the current step after a detour. If a step needs user input, continue with available work and return to it later.
 
-1. Poznej sebe, prostředí a uživatele.
-   - Přečti [svůj příběh](references/jax-lore.md). Odvoď absolutní `package_root` tři úrovně nad tímto souborem a absolutní `codex_home` z neprázdného `CODEX_HOME` nebo z `$HOME/.codex`. Spusť `python3 "$package_root/scripts/iron_box.py" activate-package "$codex_home" "$package_root"`. V Desktopu nastav avatar `custom:jax` podle doporučené šablony a ověř zobrazení. Přivítej uživatele a zmiň [Petdex](https://petdex.dev/).
-   - Zkontroluj klienta, systém, sandbox, nástroje a pluginy. Pomoz vyřešit potíže.
-   - Zjisti zkušenosti, očekávání a míru samostatnosti uživatele. Přizpůsob tomu výklad i nastavení.
+1. Get to know yourself, the environment, and the user.
+   - Read [your story](references/jax-lore.md). Set the absolute `package_root` three levels above this file and the absolute `codex_home` from a nonempty `CODEX_HOME` or from `$HOME/.codex`. Run `python3 "$package_root/scripts/iron_box.py" activate-package "$codex_home" "$package_root"`. In Codex Desktop, select the `custom:jax` avatar using the recommended template and verify that it appears. Welcome the user and mention [Petdex](https://petdex.dev/).
+   - Check the client, system, sandbox, tools, and plugins. Help resolve any issues.
+   - Ask about the user's experience, expectations, and how much they want to do themselves. Adapt the explanation and setup accordingly.
 
-2. Vysvětli a nastav Iron Box.
-   - Přečti [motivaci](../../docs/why-iron-box.md) a [orchestrační skill](../iron-box-orchestration/SKILL.md). Na práci uživatele vysvětli cíl, kontext a ověřování. Ukaž spolupráci hlavního vlákna s uživatelem, delegaci a převzetí výsledku, skill a předání kontextu podle možností klienta.
-   - Nastav podporované modely, agenty, paměť, a schvalování podle `templates/codex-desktop.recommended.toml`. Vysvětli možnosti schvalování. Při nejistotě ověř dokumentaci klienta.
-   - Vysvětli, jak klient pracuje s globálními a projektovými instrukcemi a které z nich dostávají subagenti. Orchestraci ponech v jejím skillu.
+2. Explain and configure Iron Box.
+   - Read [why Iron Box exists](../../docs/why-iron-box.md) and the [orchestration skill](../iron-box-orchestration/SKILL.md). Use the user's work to explain goals, context, and verification. Show how the main thread works with the user, delegates, and takes over results. Demonstrate a skill and context handoff as supported by the client.
+   - Configure supported models, agents, memory, and approvals using `templates/codex-desktop.recommended.toml`. Explain the approval options. Check the client's documentation when unsure.
+   - Explain how the client handles global and project instructions and which ones subagents receive. Keep orchestration guidance in its skill.
 
-3. Připrav integrace a přizpůsobení.
-   - Nainstaluj Superpowers, Context7, find-skills a Design Doc Mermaid podle klienta a aktuální dokumentace. Vysvětli jejich použití. Nabídni Ponytail (`ponytail@ponytail` z `DietrichGebert/ponytail`). Jeho hooky potřebují `node` na `PATH`, schválení uživatelem a nové vlákno.
-   - Ukaž vzdálené ovládání, ovládání počítače a prohlížeče, vzhled a nastavení. Vysvětli rozdíl mezi skilly, pluginy a MCP.
+3. Set up integrations and customization.
+   - Install Superpowers, Context7, find-skills, and Design Doc Mermaid according to the client and current documentation. Explain how to use them. Offer Ponytail (`ponytail@ponytail` from `DietrichGebert/ponytail`). Its hooks require `node` on `PATH`, user approval, and a new thread.
+   - Show remote control, computer and browser control, appearance options, and where to change settings. Explain the difference between skills, plugins, and MCP.
 
-4. Připrav pracovní prostor a znalostní bázi.
-   - Zmapuj projekty, týmy, repozitáře, dokumentaci a úkoly. Prohlédni označené složky, zjisti hostování a přístupy a urči, v čem je který zdroj autoritativní.
-   - Dohodni umístění projektů, prostoru asistentky a báze. Vycházej z existujícího uspořádání. Přesuny prober předem.
-   - Doporuč [Karpathy LLM Wiki](https://github.com/Astro-Han/karpathy-llm-wiki) s Obsidianem jako editorem. Pro komplexnější správu znalostí nabídni [Obsidian Second Brain](https://github.com/eugeniughelbur/obsidian-second-brain). Pro jeden vault používej jednu sadu pravidel pro zápis. Automatizaci ověř v cílovém klientovi.
-   - Vytvoř dohodnutý prostor. V doporučené variantě nainstaluj chybějící nástroje, nastav LLM Wiki jako skill a otevři bázi jako vault v Obsidianu. `raw/` použij pro předané soubory. Poznatky ukládej do wiki s odkazy. Dokumentaci v Confluence, Jira a repozitářích čti přímo u zdroje.
+4. Prepare the workspace and knowledge base.
+   - Map projects, teams, repositories, documentation, and tasks. Inspect the folders the user identifies. Determine where services are hosted, what access is available, and what each source is authoritative for.
+   - Agree on locations for projects, the assistant's workspace, and the knowledge base. Build on the existing layout. Discuss any moves in advance.
+   - Recommend [Karpathy LLM Wiki](https://github.com/Astro-Han/karpathy-llm-wiki) with Obsidian as the editor. Offer [Obsidian Second Brain](https://github.com/eugeniughelbur/obsidian-second-brain) for more advanced knowledge management. Use one set of writing rules per vault. Verify any automation in the target client.
+   - Create the agreed workspace. For the recommended setup, install any missing tools, configure LLM Wiki as a skill, and open the knowledge base as an Obsidian vault. Use `raw/` for supplied files. Store insights with links in the wiki. Read Confluence, Jira, and repository documentation directly at the source.
 
-5. Nastav a zapoj asistentku.
-   - Dohodni její jméno a roli. V kořenovém `AGENTS.md` jejího prostoru popiš osobnost, odpovědnosti, zdroje, umístění báze a pravidla pro dohledávání a zápis. Založ její osobní část wiki a zapiš do instrukcí její umístění.
-   - Nastav dostupné integrace podle klienta a hostování. Ověř přímé vyhledání a čtení v Confluence, Jira nebo dalších zdrojích i přístup k wiki. Pro dohledávání preferuj přístup pouze pro čtení. Zápisy do sdílené wiki prováděj postupně.
-   - Na skutečném rozhodnutí ověř zápis s odkazem, dohledání a kontrolu odkazů a duplicit. Při změně aktualizuj související poznatky a zachovej historii. Rozpor zaznamenej a ověř u autoritativního zdroje.
-   - Do instrukcí asistentky zapiš, že potvrzená rozhodnutí a užitečné poznatky rovnou ukládá do své osobní části wiki s odkazem na zdroj, je-li dostupný. U nejasného rozhodnutí si vyžádá upřesnění. Běžný dotaz wiki nemění. Ověř, že si poznatek uloží i bez pobídky.
-   - Zpřístupni asistentku jako projekt nebo prostor v klientovi. Do sdílených instrukcí podporovaných klientem doplň, kde ji najít, kdy ji oslovit a kam předat poznatek se zdrojem.
-   - Podporuje-li klient komunikaci mezi vlákny, založ jí vlákno a do těchto instrukcí přidej větu, že se jí agenti mohou ptát na chybějící informace, s odkazem na skutečné vlákno. Ověř předání dotazu a odpovědi. Jinak předání ověř přes dohodnutý prostor.
-   - V nové konverzaci ověř, zda agent sám použije uložené rozhodnutí se zdrojem. Pokud potřebuje pobídku, ověř dohledání i výslovným dotazem.
+5. Set up the assistant and connect it with other agents.
+   - Agree on its name and role. In the workspace's root `AGENTS.md`, describe its personality, responsibilities, sources, knowledge base location, and lookup and writing rules. Create its personal wiki section and record its location there.
+   - Set up available integrations for the client and hosting environment. Verify direct search and read access to Confluence, Jira, or other sources, and access to the wiki. Prefer read-only access for lookups. Process shared wiki writes one at a time.
+   - Use a real decision to verify writing with a source link, retrieval, and checks for broken links and duplicates. When the decision changes, update related insights and preserve the history. Record conflicts and check the authoritative source.
+   - Instruct the assistant to save confirmed decisions and useful insights directly in its personal wiki section with a source link when available. Have it ask for clarification when a decision is unclear. Ordinary queries leave the wiki unchanged. Verify that the assistant saves an insight without prompting.
+   - Make the assistant available as a project or workspace in the client. In the shared instructions supported by the client, record where to find it, when to ask it for help, and where to send insights with their sources.
+   - If the client supports cross-thread communication, create a thread for the assistant and add a sentence to those instructions saying that agents can ask it for missing information, with a link to the actual thread. Verify question and answer handoff. Otherwise, verify handoff through the agreed workspace.
+   - In a new conversation, verify that an agent uses the saved decision and cites its source on its own. If it needs prompting, also verify retrieval with an explicit request.
 
-Na závěr vyzkoušej dostupné funkce. U agentů ověř, co klient dokáže potvrdit o modelu, effortu, kontextu a oprávněních. Uživateli shrň výsledky ověření, zbývající kroky a jejich účel. Funkci potvrď pozorováním v klientovi.
+Finally, try the available features. For agents, check what the client can confirm about the model, reasoning effort, context, and permissions. Summarize the verification results, the remaining steps, and their purpose. Confirm that features work by observing them in the client.

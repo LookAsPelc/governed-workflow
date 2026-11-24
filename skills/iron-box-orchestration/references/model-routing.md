@@ -1,35 +1,35 @@
-# Volba modelu a ověřování
+# Model Selection and Verification
 
-Zvol pracovníka podle potřebné činnosti, nikoli pouze podle tématu nebo velikosti zadání. Výchozí volby uprav podle dostupnosti modelů, náročnosti uvažování, zkušenosti pracovníka a výsledků. Nedostupný model či effort nepředstírej; zvol vhodnou dostupnou alternativu a omezení sděl.
+Choose a worker based on the work required, not only the topic or task size. Adjust the starting choices for model availability, reasoning effort, worker experience, and results. Do not pretend an unavailable model or effort is available. Choose a suitable available alternative and state the limitation.
 
-| Činnost | Doporučený začátek |
+| Work | Recommended starting point |
 | --- | --- |
-| Mechanická úprava, jednoduchý test, extrakce | Luna High |
-| Běžná implementace, endpoint, oprava chyby | Luna XHigh |
-| Obtížný algoritmus, provázané části nebo souběh | Luna Max; při nejasné příčině Sol High |
-| Architektura a kompromisy | Sol Medium; High při zásadních důsledcích |
-| Formuláře a běžná práce v aplikaci | Terra Low |
-| Vícekrokové GUI, vizuální kontrola, rešerše | Terra Medium; XHigh pro složitý výkres či 3D |
-| Dokumentace a komunikace | Terra Medium/High; Sol pro obtížný odborný obsah |
-| Publikace a bibliografie | Luna High, s ověřením primárních zdrojů |
-| Extrakce dat a Python | Luna High/XHigh pro extrakci, Max pro obtížné zpracování; Terra pro složité grafy |
-| XRD, DSC, TGA a experimenty | Sol High pro interpretaci a návrh experimentů |
-| SEM/TEM a odborné grafy | Terra High pro obraz, Sol High pro vědecký závěr |
-| Matematické odvození | Sol High, podle potřeby symbolický výpočet |
-| Frontend podle předlohy | Luna XHigh/Max pro implementaci, Terra High pro vizuální kontrolu |
-| CSS a responzivita | Luna XHigh, Terra High pro vizuální kontrolu |
-| Blender nebo CAD | Terra High/XHigh pro GUI, Luna Max pro parametrické skriptování; Sol pro obtížnou geometrii |
-| Vizuální identita nebo UX | Terra High; Sol Medium pro kritiku podle potřeby |
-| Zabezpečení a threat modeling | Sol 6.1 High; Sol 5.6 jako případný nezávislý druhý názor |
+| Mechanical edit, simple test, extraction | Luna High |
+| Routine implementation, endpoint, bug fix | Luna XHigh |
+| Difficult algorithm, tightly coupled components, or concurrency | Luna Max; Sol High when the cause is unclear |
+| Architecture and trade-offs | Sol Medium; High for major consequences |
+| Forms and routine application work | Terra Low |
+| Multi-step GUI, visual inspection, research | Terra Medium; XHigh for a complex drawing or 3D |
+| Documentation and communication | Terra Medium/High; Sol for difficult expert content |
+| Publication and bibliography | Luna High, with primary-source verification |
+| Data extraction and Python | Luna High/XHigh for extraction, Max for difficult processing; Terra for complex charts |
+| XRD, DSC, TGA, and experiments | Sol High for interpretation and experiment design |
+| SEM/TEM and expert charts | Terra High for images, Sol High for scientific conclusions |
+| Mathematical derivation | Sol High, with symbolic computation when needed |
+| Frontend from a reference | Luna XHigh/Max for implementation, Terra High for visual inspection |
+| CSS and responsiveness | Luna XHigh, Terra High for visual inspection |
+| Blender or CAD | Terra High/XHigh for GUI, Luna Max for parametric scripting; Sol for difficult geometry |
+| Visual identity or UX | Terra High; Sol Medium for critique when needed |
+| Security and threat modeling | Sol 6.2 High; Sol 5.6 as a possible independent second opinion |
 
-U vědecké práce odděluj měření, výpočty, interpretace a hypotézy. U vizuálních výstupů ověř kromě funkčnosti také jejich vzhled. Sol může dostat otázku, aniž by přebíral implementaci nebo rozhodování o rozsahu.
+For scientific work, distinguish measurements, calculations, interpretations, and hypotheses. For visual deliverables, verify both appearance and function. Sol can answer a question without taking over implementation or scope decisions.
 
-Luna Max dává smysl rovnou u provázaných částí systému, rekonstrukce neznámého algoritmu nebo obtížné kauzální analýzy. Počet souborů sám náročnost neurčuje. Rozsáhlou implementaci může zpracovat Luna; Sol pak na základě výsledku může odpovědět na odborné otázky, například zda strategie/algoritmus/architektura dává smysl.
+Luna Max is appropriate from the start for tightly coupled system components, reconstructing an unknown algorithm, or difficult causal analysis. File count alone does not determine complexity. Luna can handle a large implementation. Sol can then answer expert questions based on the results, such as whether the strategy, algorithm, or architecture makes sense.
 
-U GUI deleguj dosažení výsledku, ne jednotlivé kliky; ověř skutečně uložený výsledek. Bezpečnostní review zvaž podle rizik jako autentizace, autorizace, tajemství, cizí data a nedůvěryhodný vstup, nikoli podle počtu řádků.
+For GUI work, delegate the outcome, not individual clicks. Verify the saved result. Consider security review based on risks such as authentication, authorization, secrets, external data, and untrusted input, not line count.
 
-Když výsledek selže, rozliš příčinu: chybějící údaje či přístup doplň; konkrétní chybu vrať pracovníkovi; chybný plán konzultuj; při chybějící schopnosti změň model nebo nástroj. Nedostatečné ověření řeš testem nebo nezávislým review. Rozdílné závěry porovnej s důkazy. Změna effortu a změna modelu jsou různé volby, nikoli povinný žebříček.
+When a result fails, identify the cause. Supply missing information or access. Return a specific error to the worker. Discuss a flawed plan. Change the model or tool when a capability is missing. Address insufficient verification with a test or independent review. Compare conflicting conclusions against the evidence. Changing effort and changing the model are separate choices, not a required ladder.
 
-Ověřování vol podle rizika a ověřitelnosti: jednoduchý dobře měřitelný výsledek může ověřit přímý test; závažnější nebo obtížně ověřitelný problém může vyžadovat nezávislý odborný úsudek a více důkazů. Paralelizuj nezávislé úlohy a souběžnost zvyšuj, jen když přinese užitek.
+Choose verification based on risk and how easy the result is to verify. A simple, measurable result may need a direct test. A more consequential or difficult-to-verify problem may need independent expert judgment and more evidence. Parallelize independent tasks and increase concurrency only when it helps.
 
-Standardní ceny za stejné množství běžných vstupních a výstupních tokenů orientačně odpovídají poměru Luna 1 : Terra 10 : Sol 6.1 20 : Sol 5.6 40. Cena úkolu závisí i na počtu tokenů, effortu, opakování, review a kvalitě tvého delegování.
+As a rough guide, standard prices for the same volume of ordinary input and output tokens have these ratios: Luna 1 : Terra 10 : Sol 6.2 20 : Sol 5.6 40. Task cost also depends on token count, effort, retries, review, and the quality of your delegation.

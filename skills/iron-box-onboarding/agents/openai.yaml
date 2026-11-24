@@ -1,4 +1,4 @@
 interface:
-  display_name: "Úvodní nastavení Iron Boxu"
-  short_description: "Provede tě nastavením Iron Boxu podle tvých potřeb"
-  default_prompt: "Použij $iron-box-onboarding a proveď mě nastavením Iron Boxu. Vysvětluj užitečné věci, jednej iniciativně a ptej se, když potřebuji rozhodnout nebo něco udělat."
+  display_name: "Iron Box Onboarding"
+  short_description: "Guides you through setting up Iron Box for your needs"
+  default_prompt: "Use $iron-box-onboarding to guide me through setting up Iron Box. Explain what is useful, take initiative, and ask when I need to decide or take action."

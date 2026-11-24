@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "name": "iron-box",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "runtimeRequired": [
     "plugin.json",
     "iron-box-package.json",
